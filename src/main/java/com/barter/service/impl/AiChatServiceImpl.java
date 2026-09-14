@@ -4,11 +4,15 @@ import com.barter.config.AiConfig;
 import com.barter.entity.AiChatRecord;
 import com.barter.mapper.AiChatRecordMapper;
 import com.barter.service.AiChatService;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.List;
+import java.util.*;
 import java.util.regex.Pattern;
 
 /**
@@ -24,10 +28,13 @@ public class AiChatServiceImpl implements AiChatService {
     @Autowired
     private AiChatRecordMapper recordMapper;
 
-    // 系统提示词
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    // 系统提示词（固定，需求文档要求）
     private static final String SYSTEM_PROMPT = "你是校园闲置物品交换平台助手，只回答物品发布、交换相关问题，可以帮助润色闲置物品描述，拒绝回答无关话题。";
 
-    // 关键词：平台相关
+    // 关键词：平台相关（降级模式用）
     private static final String[] RELATED_KEYWORDS = {
             "物品", "闲置", "交换", "发布", "分类", "申请", "下架",
             "教材", "数码", "运动", "生活", "希望", "留言",
@@ -43,15 +50,15 @@ public class AiChatServiceImpl implements AiChatService {
 
         String aiContent;
         if (aiConfig.isEnable()) {
-            // 真实AI模式（这里实现降级逻辑，预留真实API调用接口）
+            // 真实 AI 模式 —— 调用 DeepSeek V4 Flash
             try {
-                aiContent = callRealAi(content);
+                aiContent = callDeepSeek(content);
             } catch (Exception e) {
-                log.error("调用真实AI失败，降级返回模拟回答", e);
+                log.error("调用 DeepSeek 失败，降级返回模拟回答", e);
                 aiContent = generateMockReply(content);
             }
         } else {
-            // 模拟AI模式
+            // 模拟 AI 模式（降级）
             aiContent = generateMockReply(content);
         }
 
@@ -71,15 +78,59 @@ public class AiChatServiceImpl implements AiChatService {
     }
 
     /**
-     * 调用真实AI（通义千问）—— 预留接口，当前返回模拟
+     * 调用 DeepSeek V4 Flash API（OpenAI Chat Completions 兼容格式）
      */
-    private String callRealAi(String userContent) {
-        // TODO: 集成 Spring-AI 或 HTTP 调用通义千问 API
-        // 这里为了保证降级逻辑，先返回模拟回答
-        // 如果需要真实调用，可以在这里实现
-        log.info("真实AI模式开启，预留通义千问API调用接口");
-        return generateMockReply(userContent);
+    private String callDeepSeek(String userContent) throws Exception {
+        AiConfig.Deepseek ds = aiConfig.getDeepseek();
+        String url = ds.getBaseUrl() + "/v1/chat/completions";
+
+        // 1. 构造请求体
+        Map<String, Object> body = new HashMap<>();
+        body.put("model", ds.getModel());
+        body.put("max_tokens", 1024);
+
+        // messages 数组：system + user
+        List<Map<String, String>> messages = new ArrayList<>();
+        Map<String, String> sysMsg = new HashMap<>();
+        sysMsg.put("role", "system");
+        sysMsg.put("content", SYSTEM_PROMPT);
+        messages.add(sysMsg);
+
+        Map<String, String> userMsg = new HashMap<>();
+        userMsg.put("role", "user");
+        userMsg.put("content", userContent);
+        messages.add(userMsg);
+
+        body.put("messages", messages);
+
+        // 2. 构造请求头
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + ds.getApiKey());
+
+        // 3. 发送请求
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.POST, request, String.class);
+
+        // 4. 解析响应 JSON
+        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+            JsonNode root = objectMapper.readTree(response.getBody());
+            JsonNode choices = root.get("choices");
+            if (choices != null && choices.isArray() && !choices.isEmpty()) {
+                JsonNode contentNode = choices.get(0).get("message").get("content");
+                if (contentNode != null) {
+                    String reply = contentNode.asText().trim();
+                    if (!reply.isEmpty()) {
+                        return reply;
+                    }
+                }
+            }
+        }
+
+        throw new RuntimeException("DeepSeek 返回内容为空");
     }
+
+    // ============ 以下为本地模拟回答（降级模式使用） ============
 
     /**
      * 生成模拟回答
@@ -131,9 +182,7 @@ public class AiChatServiceImpl implements AiChatService {
      * 润色描述回复
      */
     private String generatePolishReply(String content) {
-        // 提取用户的描述内容（简单处理）
         String descPart = content;
-        // 尝试提取引号或冒号后面的内容
         Pattern p = Pattern.compile("[\"「:：](.+?)[\"」]");
         var matcher = p.matcher(content);
         if (matcher.find()) {

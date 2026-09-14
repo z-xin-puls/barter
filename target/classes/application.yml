@@ -21,6 +21,15 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
 
-# 自定义开关 true=真实调用AI false=返回模拟回答
+# AI 助手配置
+# 1. enable: true=真实调用 DeepSeek V4 Flash 大模型  false=返回本地模拟回答（降级）
+# 2. deepseek.api-key: 到 DeepSeek 开放平台申请 API Key
+#    申请地址: https://platform.deepseek.com/api_keys
+# 3. deepseek.model: deepseek-v4-flash（快+便宜）或 deepseek-v4-pro（强+稍贵）
+# 4. deepseek.base-url: DeepSeek 官方 API 地址
 ai:
-  enable: false
+  enable: true
+  deepseek:
+    base-url: https://api.deepseek.com
+    api-key: sk-dbfbe8ca16b341ba9359ba494ad89a76
+    model: deepseek-v4-flash
