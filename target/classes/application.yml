@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: barter-platform
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/barter_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: root
+  # 静态资源（前端页面）
+  web:
+    resources:
+      static-locations: classpath:/static/
+
+# MyBatis 配置
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.barter.entity
+  configuration:
+    map-underscore-to-camel-case: true
+
+# 自定义开关 true=真实调用AI false=返回模拟回答
+ai:
+  enable: false

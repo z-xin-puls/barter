@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.barter.mapper.IdleItemMapper">
+
+    <resultMap id="BaseResultMap" type="com.barter.entity.IdleItem">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="item_name" property="itemName"/>
+        <result column="item_desc" property="itemDesc"/>
+        <result column="hope_exchange" property="hopeExchange"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="username" property="username"/>
+        <result column="category_name" property="categoryName"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.barter.entity.IdleItem" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO idle_item (user_id, category_id, item_name, item_desc, hope_exchange, status)
+        VALUES (#{userId}, #{categoryId}, #{itemName}, #{itemDesc}, #{hopeExchange}, #{status})
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT i.*, u.username, c.category_name
+        FROM idle_item i
+        LEFT JOIN sys_user u ON i.user_id = u.id
+        LEFT JOIN item_category c ON i.category_id = c.id
+        WHERE i.id = #{id}
+    </select>
+
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT i.*, u.username, c.category_name
+        FROM idle_item i
+        LEFT JOIN sys_user u ON i.user_id = u.id
+        LEFT JOIN item_category c ON i.category_id = c.id
+        WHERE i.status = 1
+        <if test="categoryId != null">
+            AND i.category_id = #{categoryId}
+        </if>
+        ORDER BY i.create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="selectCount" resultType="int">
+        SELECT COUNT(*)
+        FROM idle_item
+        WHERE status = 1
+        <if test="categoryId != null">
+            AND category_id = #{categoryId}
+        </if>
+    </select>
+
+    <update id="updateStatus">
+        UPDATE idle_item SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT i.*, u.username, c.category_name
+        FROM idle_item i
+        LEFT JOIN sys_user u ON i.user_id = u.id
+        LEFT JOIN item_category c ON i.category_id = c.id
+        WHERE i.user_id = #{userId}
+        ORDER BY i.create_time DESC
+    </select>
+
+</mapper>

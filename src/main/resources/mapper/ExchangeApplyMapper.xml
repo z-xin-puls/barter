@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.barter.mapper.ExchangeApplyMapper">
+
+    <resultMap id="BaseResultMap" type="com.barter.entity.ExchangeApply">
+        <id column="id" property="id"/>
+        <result column="apply_user_id" property="applyUserId"/>
+        <result column="item_id" property="itemId"/>
+        <result column="message" property="message"/>
+        <result column="apply_status" property="applyStatus"/>
+        <result column="create_time" property="createTime"/>
+        <result column="apply_username" property="applyUsername"/>
+        <result column="item_name" property="itemName"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.barter.entity.ExchangeApply" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO exchange_apply (apply_user_id, item_id, message, apply_status)
+        VALUES (#{applyUserId}, #{itemId}, #{message}, #{applyStatus})
+    </insert>
+
+    <select id="selectMyApply" resultMap="BaseResultMap">
+        SELECT e.*, u.username AS apply_username, i.item_name
+        FROM exchange_apply e
+        LEFT JOIN sys_user u ON e.apply_user_id = u.id
+        LEFT JOIN idle_item i ON e.item_id = i.id
+        WHERE e.apply_user_id = #{applyUserId}
+        ORDER BY e.create_time DESC
+    </select>
+
+    <select id="selectReceivedApply" resultMap="BaseResultMap">
+        SELECT e.*, u.username AS apply_username, i.item_name
+        FROM exchange_apply e
+        LEFT JOIN sys_user u ON e.apply_user_id = u.id
+        LEFT JOIN idle_item i ON e.item_id = i.id
+        WHERE i.user_id = #{userId}
+        ORDER BY e.create_time DESC
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM exchange_apply WHERE id = #{id}
+    </select>
+
+    <update id="updateStatus">
+        UPDATE exchange_apply SET apply_status = #{applyStatus} WHERE id = #{id}
+    </update>
+
+</mapper>

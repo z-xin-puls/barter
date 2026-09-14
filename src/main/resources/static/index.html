@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>首页 - 校园闲置物品互助交换平台</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="app">
+    <!-- 导航栏 -->
+    <div class="navbar">
+        <div class="logo">🎒 校园闲置物品交换平台</div>
+        <div class="nav-links">
+            <a href="index.html" class="active">首页</a>
+            <a href="publish.html" v-if="user">发布闲置</a>
+            <a href="my.html" v-if="user">个人中心</a>
+            <a href="login.html" v-if="!user">登录</a>
+            <a href="#" v-if="user" @click.prevent="logout" style="color:#ff6b6b">退出 ({{ user.username }})</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- 筛选栏 -->
+        <div class="filter-bar">
+            <span style="color:#666; font-weight:500;">分类筛选：</span>
+            <select v-model="selectedCategory" @change="loadItems(1)">
+                <option :value="null">全部分类</option>
+                <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.categoryName }}</option>
+            </select>
+            <span style="color:#aaa; font-size:13px; margin-left:auto;">共 {{ total }} 件闲置物品</span>
+        </div>
+
+        <!-- 物品列表 -->
+        <div class="items-grid">
+            <div v-for="item in items" :key="item.id" class="item-card" @click="showDetail(item)">
+                <h3>{{ item.itemName }}</h3>
+                <div class="tag">{{ item.categoryName }}</div>
+                <div class="desc">{{ item.itemDesc || '暂无描述' }}</div>
+                <div style="color:#ffc107; font-size:13px; margin-bottom:8px;">
+                    💱 希望交换：{{ item.hopeExchange || '未填写' }}
+                </div>
+                <div class="meta">
+                    <span>👤 {{ item.username }}</span>
+                    <span>{{ formatDate(item.createTime) }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 空状态 -->
+        <div v-if="items.length === 0" class="empty">
+            <div class="empty-icon">📦</div>
+            <div>暂无闲置物品，快去发布第一件吧~</div>
+        </div>
+
+        <!-- 分页 -->
+        <div class="pagination" v-if="total > pageSize">
+            <button :disabled="pageNum <= 1" @click="loadItems(pageNum - 1)">上一页</button>
+            <span class="page-info">第 {{ pageNum }} / {{ totalPages }} 页</span>
+            <button :disabled="pageNum >= totalPages" @click="loadItems(pageNum + 1)">下一页</button>
+        </div>
+    </div>
+
+    <!-- 物品详情弹窗 -->
+    <div v-if="detailItem" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:150;display:flex;align-items:center;justify-content:center;" @click.self="detailItem = null">
+        <div class="card" style="max-width:500px;width:90%;">
+            <h2 style="margin-bottom:16px;">{{ detailItem.itemName }}</h2>
+            <div class="tag" style="margin-bottom:12px;">{{ detailItem.categoryName }}</div>
+            <p style="margin-bottom:10px;color:#666;">📝 {{ detailItem.itemDesc || '暂无描述' }}</p>
+            <p style="margin-bottom:10px;color:#ffc107;">💱 希望交换：{{ detailItem.hopeExchange || '未填写' }}</p>
+            <p style="margin-bottom:10px;color:#888;font-size:13px;">👤 发布者：{{ detailItem.username }}</p>
+            <p style="margin-bottom:20px;color:#aaa;font-size:13px;">🕐 发布时间：{{ formatDate(detailItem.createTime) }}</p>
+            <div style="display:flex;gap:10px;">
+                <button class="btn btn-primary" v-if="user" @click="applyExchange(detailItem)">✨ 发起交换申请</button>
+                <button class="btn btn-primary" v-else @click="toLogin">请先登录</button>
+                <button class="btn btn-secondary" @click="detailItem = null">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI助手浮动按钮 & 弹窗 -->
+    <button class="ai-btn-float" @click="openAI = true" title="AI助手">🤖</button>
+    <div v-if="openAI" class="ai-chat-box">
+        <div class="ai-chat-header">
+            <h3>🤖 AI 平台助手</h3>
+            <button @click="openAI = false">×</button>
+        </div>
+        <div class="ai-chat-messages" ref="aiMessagesRef">
+            <div v-if="aiMessages.length === 0" class="empty" style="padding:40px 20px;">
+                <div class="empty-icon">💬</div>
+                <div>你好！我可以帮你润色物品描述，<br>也能回答平台操作问题哦~</div>
+            </div>
+            <div v-for="(msg, idx) in aiMessages" :key="idx" class="ai-message" :class="msg.role">
+                <div class="bubble">{{ msg.content }}</div>
+            </div>
+        </div>
+        <div class="ai-chat-input">
+            <textarea v-model="aiInput" placeholder="输入你的问题..." rows="1" @keydown.enter.exact.prevent="sendAI"></textarea>
+            <button @click="sendAI" :disabled="aiLoading">{{ aiLoading ? '发送中' : '发送' }}</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="js/common.js"></script>
+<script>
+    const { createApp, ref, computed, onMounted, nextTick } = Vue;
+
+    createApp({
+        setup() {
+            const user = ref(getUserInfo());
+            const categories = ref([]);
+            const selectedCategory = ref(null);
+            const items = ref([]);
+            const total = ref(0);
+            const pageNum = ref(1);
+            const pageSize = ref(10);
+            const detailItem = ref(null);
+
+            // AI 相关
+            const openAI = ref(false);
+            const aiInput = ref('');
+            const aiLoading = ref(false);
+            const aiMessages = ref([]);
+            const aiMessagesRef = ref(null);
+
+            const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
+
+            const loadCategories = async () => {
+                try {
+                    const res = await httpGet('/api/category/list');
+                    categories.value = res.data;
+                } catch (e) {}
+            };
+
+            const loadItems = async (page = 1) => {
+                pageNum.value = page;
+                try {
+                    const res = await httpGet('/api/item/page', {
+                        pageNum: page,
+                        pageSize: pageSize.value,
+                        categoryId: selectedCategory.value
+                    });
+                    items.value = res.data.records;
+                    total.value = res.data.total;
+                } catch (e) {}
+            };
+
+            const showDetail = (item) => {
+                detailItem.value = item;
+            };
+
+            const applyExchange = async (item) => {
+                if (!requireLogin()) return;
+                const msg = prompt('请输入申请留言（告诉发布者你想交换什么）：');
+                if (msg === null) return;
+                try {
+                    await httpPost('/api/exchange/apply', { itemId: item.id, message: msg });
+                    showToast('申请已发送，等待对方处理~', 'success');
+                    detailItem.value = null;
+                } catch (e) {}
+            };
+
+            const toLogin = () => {
+                window.location.href = 'login.html';
+            };
+
+            const sendAI = async () => {
+                if (!aiInput.value.trim()) return;
+                const text = aiInput.value.trim();
+                aiMessages.value.push({ role: 'user', content: text });
+                aiInput.value = '';
+                aiLoading.value = true;
+                await nextTick();
+                scrollAIBottom();
+
+                try {
+                    const res = await httpPost('/api/ai/chat', { content: text });
+                    aiMessages.value.push({ role: 'ai', content: res.data });
+                } catch (e) {
+                    aiMessages.value.push({ role: 'ai', content: '抱歉，AI 助手暂时不可用，请稍后再试~' });
+                } finally {
+                    aiLoading.value = false;
+                    await nextTick();
+                    scrollAIBottom();
+                }
+            };
+
+            const scrollAIBottom = () => {
+                if (aiMessagesRef.value) {
+                    aiMessagesRef.value.scrollTop = aiMessagesRef.value.scrollHeight;
+                }
+            };
+
+            onMounted(() => {
+                loadCategories();
+                loadItems();
+            });
+
+            return {
+                user, categories, selectedCategory, items, total, pageNum, pageSize, totalPages, detailItem,
+                openAI, aiInput, aiLoading, aiMessages, aiMessagesRef,
+                logout,
+                loadItems, showDetail, applyExchange, toLogin, sendAI,
+                formatDate
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>

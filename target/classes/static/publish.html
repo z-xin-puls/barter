@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>发布闲置物品 - 校园闲置物品互助交换平台</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="app">
+    <!-- 导航栏 -->
+    <div class="navbar">
+        <div class="logo">🎒 校园闲置物品交换平台</div>
+        <div class="nav-links">
+            <a href="index.html">首页</a>
+            <a href="publish.html" class="active">发布闲置</a>
+            <a href="my.html">个人中心</a>
+            <a href="#" @click.prevent="logout" style="color:#ff6b6b">退出 ({{ user.username }})</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="card" style="max-width:600px;margin:0 auto;">
+            <h2 style="margin-bottom:24px;">📤 发布闲置物品</h2>
+
+            <div class="form-group">
+                <label>物品分类 *</label>
+                <select v-model="form.categoryId">
+                    <option :value="null">请选择分类</option>
+                    <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.categoryName }}</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>物品名称 *</label>
+                <input type="text" v-model="form.itemName" placeholder="例如：高等数学教材">
+            </div>
+
+            <div class="form-group">
+                <label>物品描述（成色、使用情况等）</label>
+                <textarea v-model="form.itemDesc" placeholder="例如：九成新，无笔记，适合大一新生使用"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>希望交换什么物品</label>
+                <input type="text" v-model="form.hopeExchange" placeholder="例如：大学物理教材">
+            </div>
+
+            <div style="display:flex;gap:12px;">
+                <button class="btn btn-primary" @click="handleSubmit" :disabled="loading" style="flex:1;">
+                    {{ loading ? '发布中...' : '确认发布' }}
+                </button>
+                <button class="btn btn-secondary" @click="resetForm" style="flex:1;">重置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI助手浮动按钮 & 弹窗 -->
+    <button class="ai-btn-float" @click="openAI = true" title="AI助手">🤖</button>
+    <div v-if="openAI" class="ai-chat-box">
+        <div class="ai-chat-header">
+            <h3>🤖 AI 平台助手</h3>
+            <button @click="openAI = false">×</button>
+        </div>
+        <div class="ai-chat-messages" ref="aiMessagesRef">
+            <div v-if="aiMessages.length === 0" class="empty" style="padding:40px 20px;">
+                <div class="empty-icon">💬</div>
+                <div>让我帮你润色一下物品描述吧~</div>
+            </div>
+            <div v-for="(msg, idx) in aiMessages" :key="idx" class="ai-message" :class="msg.role">
+                <div class="bubble">{{ msg.content }}</div>
+            </div>
+        </div>
+        <div class="ai-chat-input">
+            <textarea v-model="aiInput" placeholder="输入你的问题..." rows="1" @keydown.enter.exact.prevent="sendAI"></textarea>
+            <button @click="sendAI" :disabled="aiLoading">{{ aiLoading ? '发送中' : '发送' }}</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="js/common.js"></script>
+<script>
+    const { createApp, ref, onMounted, nextTick } = Vue;
+
+    createApp({
+        setup() {
+            const user = ref(getUserInfo());
+            const categories = ref([]);
+            const loading = ref(false);
+
+            const form = ref({
+                categoryId: null,
+                itemName: '',
+                itemDesc: '',
+                hopeExchange: ''
+            });
+
+            // AI 相关
+            const openAI = ref(false);
+            const aiInput = ref('');
+            const aiLoading = ref(false);
+            const aiMessages = ref([]);
+            const aiMessagesRef = ref(null);
+
+            const loadCategories = async () => {
+                try {
+                    const res = await httpGet('/api/category/list');
+                    categories.value = res.data;
+                } catch (e) {}
+            };
+
+            const handleSubmit = async () => {
+                if (!form.value.categoryId) {
+                    showToast('请选择分类', 'error');
+                    return;
+                }
+                if (!form.value.itemName.trim()) {
+                    showToast('请填写物品名称', 'error');
+                    return;
+                }
+                loading.value = true;
+                try {
+                    await httpPost('/api/item/add', form.value);
+                    showToast('发布成功！', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1000);
+                } catch (e) {
+                    // 错误已拦截
+                } finally {
+                    loading.value = false;
+                }
+            };
+
+            const resetForm = () => {
+                form.value = {
+                    categoryId: null,
+                    itemName: '',
+                    itemDesc: '',
+                    hopeExchange: ''
+                };
+            };
+
+            const sendAI = async () => {
+                if (!aiInput.value.trim()) return;
+                const text = aiInput.value.trim();
+                aiMessages.value.push({ role: 'user', content: text });
+                aiInput.value = '';
+                aiLoading.value = true;
+                await nextTick();
+                scrollAIBottom();
+                try {
+                    const res = await httpPost('/api/ai/chat', { content: text });
+                    aiMessages.value.push({ role: 'ai', content: res.data });
+                } catch (e) {
+                    aiMessages.value.push({ role: 'ai', content: '抱歉，AI 助手暂时不可用~' });
+                } finally {
+                    aiLoading.value = false;
+                    await nextTick();
+                    scrollAIBottom();
+                }
+            };
+
+            const scrollAIBottom = () => {
+                if (aiMessagesRef.value) {
+                    aiMessagesRef.value.scrollTop = aiMessagesRef.value.scrollHeight;
+                }
+            };
+
+            onMounted(() => {
+                if (!getToken()) {
+                    showToast('请先登录', 'error');
+                    setTimeout(() => window.location.href = 'login.html', 1500);
+                    return;
+                }
+                loadCategories();
+            });
+
+            return {
+                user, categories, form, loading,
+                openAI, aiInput, aiLoading, aiMessages, aiMessagesRef,
+                handleSubmit, resetForm, sendAI, logout
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
