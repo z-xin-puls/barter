@@ -44,4 +44,12 @@
         UPDATE exchange_apply SET apply_status = #{applyStatus} WHERE id = #{id}
     </update>
 
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT e.*, u.username AS apply_username, i.item_name
+        FROM exchange_apply e
+        LEFT JOIN sys_user u ON e.apply_user_id = u.id
+        LEFT JOIN idle_item i ON e.item_id = i.id
+        ORDER BY e.create_time DESC
+    </select>
+
 </mapper>

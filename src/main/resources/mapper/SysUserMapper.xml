@@ -8,6 +8,7 @@
         <result column="password" property="password"/>
         <result column="real_name" property="realName"/>
         <result column="phone" property="phone"/>
+        <result column="role" property="role"/>
         <result column="create_time" property="createTime"/>
     </resultMap>
 
@@ -20,8 +21,23 @@
     </select>
 
     <insert id="insert" parameterType="com.barter.entity.SysUser" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO sys_user (username, password, real_name, phone)
-        VALUES (#{username}, #{password}, #{realName}, #{phone})
+        INSERT INTO sys_user (username, password, real_name, phone, role)
+        VALUES (#{username}, #{password}, #{realName}, #{phone}, #{role})
     </insert>
+
+    <!-- 管理员：查询全部用户 -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT * FROM sys_user ORDER BY id DESC
+    </select>
+
+    <!-- 管理员：删除用户 -->
+    <delete id="deleteById">
+        DELETE FROM sys_user WHERE id = #{id}
+    </delete>
+
+    <!-- 管理员：重置密码 -->
+    <update id="updatePassword">
+        UPDATE sys_user SET password = #{password} WHERE id = #{id}
+    </update>
 
 </mapper>

@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS `sys_user` (
   `password` varchar(100) NOT NULL COMMENT '密码',
   `real_name` varchar(30) DEFAULT NULL COMMENT '真实姓名',
   `phone` varchar(11) DEFAULT NULL COMMENT '手机号',
+  `role` tinyint DEFAULT 0 COMMENT '0普通用户 1管理员',
   `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_username` (`username`)
@@ -68,9 +69,10 @@ INSERT INTO item_category(category_name, sort) VALUES
 ('运动器材', 3),
 ('生活用品', 4);
 
--- 测试数据: 插入一个测试用户 (用户名test, 密码123456)
-INSERT INTO sys_user (username, password, real_name, phone) VALUES
-('test', '123456', '测试用户', '13800138000');
+-- 测试数据: 普通用户 (test/123456) + 管理员 (admin/admin123)
+INSERT INTO sys_user (username, password, real_name, phone, role) VALUES
+('test', '123456', '测试用户', '13800138000', 0),
+('admin', 'admin123', '系统管理员', '13900000000', 1);
 
 -- 测试数据: 插入几条闲置物品
 INSERT INTO idle_item (user_id, category_id, item_name, item_desc, hope_exchange, status) VALUES

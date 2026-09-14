@@ -33,4 +33,7 @@ public interface ExchangeApplyMapper {
      * 根据ID查询
      */
     ExchangeApply selectById(Long id);
+
+    /** 管理员：查询全部申请 */
+    List<ExchangeApply> selectAll();
 }

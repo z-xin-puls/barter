@@ -63,4 +63,16 @@
         ORDER BY i.create_time DESC
     </select>
 
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT i.*, u.username, c.category_name
+        FROM idle_item i
+        LEFT JOIN sys_user u ON i.user_id = u.id
+        LEFT JOIN item_category c ON i.category_id = c.id
+        ORDER BY i.create_time DESC
+    </select>
+
+    <delete id="deleteById">
+        DELETE FROM idle_item WHERE id = #{id}
+    </delete>
+
 </mapper>

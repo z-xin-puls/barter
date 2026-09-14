@@ -37,4 +37,10 @@ public interface IdleItemMapper {
      * 查询我的发布
      */
     List<IdleItem> selectByUserId(@Param("userId") Long userId);
+
+    /** 管理员：查询全部物品（含下架） */
+    List<IdleItem> selectAll();
+
+    /** 管理员：删除物品 */
+    int deleteById(Long id);
 }

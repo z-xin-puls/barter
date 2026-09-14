@@ -30,7 +30,7 @@
                 {{ loading ? '登录中...' : '登 录' }}
             </button>
             <p style="text-align:center; margin-top:16px; color:#aaa; font-size:13px;">
-                测试账号：test / 密码：123456
+                普通用户：test / 123456 | 管理员：admin / admin123
             </p>
         </div>
 
@@ -94,11 +94,16 @@
                     localStorage.setItem('userInfo', JSON.stringify({
                         userId: res.data.userId,
                         username: res.data.username,
-                        realName: res.data.realName
+                        realName: res.data.realName,
+                        role: res.data.role
                     }));
                     showToast('登录成功，欢迎回来！', 'success');
                     setTimeout(() => {
-                        window.location.href = 'index.html';
+                        if (res.data.role === 1) {
+                            window.location.href = 'admin.html';
+                        } else {
+                            window.location.href = 'index.html';
+                        }
                     }, 800);
                 } catch (e) {
                     // 错误已在拦截器中处理

@@ -14,8 +14,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
     @Autowired
     private JwtInterceptor jwtInterceptor;
 
+    @Autowired
+    private AdminAuthInterceptor adminAuthInterceptor;
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // 1. JWT 登录拦截
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/api/**")
                 .excludePathPatterns(
@@ -24,5 +28,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/category/list",
                         "/api/item/page"
                 );
+
+        // 2. 管理员权限拦截（先经过JWT，再校验role）
+        registry.addInterceptor(adminAuthInterceptor)
+                .addPathPatterns("/api/admin/**");
     }
 }

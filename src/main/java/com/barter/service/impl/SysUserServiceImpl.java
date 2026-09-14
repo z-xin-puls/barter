@@ -29,16 +29,16 @@ public class SysUserServiceImpl implements SysUserService {
         if (dto.getPassword() == null || dto.getPassword().trim().isEmpty()) {
             throw new RuntimeException("密码不能为空");
         }
-        // 检查用户名是否已存在
         SysUser exist = userMapper.selectByUsername(dto.getUsername());
         if (exist != null) {
             throw new RuntimeException("账号已存在");
         }
         SysUser user = new SysUser();
         user.setUsername(dto.getUsername());
-        user.setPassword(dto.getPassword()); // 简单存储密码
+        user.setPassword(dto.getPassword());
         user.setRealName(dto.getRealName());
         user.setPhone(dto.getPhone());
+        user.setRole(0); // 注册都是普通用户
         userMapper.insert(user);
     }
 
@@ -54,14 +54,15 @@ public class SysUserServiceImpl implements SysUserService {
         if (!user.getPassword().equals(dto.getPassword())) {
             throw new RuntimeException("密码错误");
         }
-        // 生成 token
-        String token = JwtUtil.generateToken(user.getId(), user.getUsername());
+        // 生成 token（带 role）
+        String token = JwtUtil.generateToken(user.getId(), user.getUsername(), user.getRole());
 
         Map<String, Object> result = new HashMap<>();
         result.put("token", token);
         result.put("userId", user.getId());
         result.put("username", user.getUsername());
         result.put("realName", user.getRealName());
+        result.put("role", user.getRole());
         return result;
     }
 }

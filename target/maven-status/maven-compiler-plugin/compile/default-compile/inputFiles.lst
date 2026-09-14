@@ -26,9 +26,11 @@ E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\controlle
 E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\controller\IdleItemController.java
 E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\service\SysUserService.java
 E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\service\AiChatService.java
+E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\config\AdminAuthInterceptor.java
 E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\config\AiConfig.java
 E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\mapper\ExchangeApplyMapper.java
 E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\service\ExchangeApplyService.java
+E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\controller\AdminController.java
 E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\service\ItemCategoryService.java
 E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\mapper\ItemCategoryMapper.java
 E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\common\JwtUtil.java

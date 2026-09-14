@@ -24,12 +24,13 @@ public class JwtUtil {
     private static final SecretKey KEY = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
 
     /**
-     * 生成token
+     * 生成token（带role）
      */
-    public static String generateToken(Long userId, String username) {
+    public static String generateToken(Long userId, String username, Integer role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("username", username);
+        claims.put("role", role);
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(username)
@@ -50,23 +51,23 @@ public class JwtUtil {
                 .getBody();
     }
 
-    /**
-     * 从token中获取userId
-     */
     public static Long getUserId(String token) {
         Claims claims = parseToken(token);
         Object id = claims.get("userId");
-        if (id instanceof Integer) {
-            return ((Integer) id).longValue();
-        }
+        if (id instanceof Integer) return ((Integer) id).longValue();
         return (Long) id;
     }
 
-    /**
-     * 从token中获取username
-     */
     public static String getUsername(String token) {
         Claims claims = parseToken(token);
         return claims.get("username", String.class);
+    }
+
+    public static Integer getRole(String token) {
+        Claims claims = parseToken(token);
+        Object role = claims.get("role");
+        if (role == null) return 0;
+        if (role instanceof Integer) return (Integer) role;
+        return ((Number) role).intValue();
     }
 }

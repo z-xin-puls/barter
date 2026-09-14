@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员控制台 - 校园闲置物品互助交换平台</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body { background: #f0f2f5; }
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 220px; background: #1f2937; color: #fff; padding: 20px 0; }
+        .sidebar h2 { font-size: 18px; padding: 0 20px 20px; border-bottom: 1px solid #374151; }
+        .sidebar .menu-item { padding: 12px 20px; cursor: pointer; transition: background .2s; font-size: 14px; }
+        .sidebar .menu-item:hover { background: #374151; }
+        .sidebar .menu-item.active { background: #3b82f6; }
+        .sidebar .logout { margin-top: 20px; border-top: 1px solid #374151; padding-top: 15px; }
+
+        .main { flex: 1; padding: 24px; overflow-y: auto; }
+        .header { background: #fff; padding: 16px 24px; border-radius: 8px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+        .header h1 { font-size: 20px; margin: 0; color: #1f2937; }
+        .header .admin-info { color: #6b7280; font-size: 14px; }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
+        .stat-card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+        .stat-card .label { font-size: 13px; color: #6b7280; }
+        .stat-card .value { font-size: 28px; font-weight: 600; color: #1f2937; margin-top: 6px; }
+        .stat-card.blue .value { color: #3b82f6; }
+        .stat-card.green .value { color: #10b981; }
+        .stat-card.orange .value { color: #f59e0b; }
+        .stat-card.purple .value { color: #8b5cf6; }
+
+        .content-card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+        th { background: #f9fafb; font-weight: 600; color: #374151; }
+        tr:hover td { background: #f9fafb; }
+
+        .badge { padding: 3px 10px; border-radius: 12px; font-size: 12px; }
+        .badge-green { background: #d1fae5; color: #065f46; }
+        .badge-gray { background: #e5e7eb; color: #374151; }
+        .badge-red { background: #fee2e2; color: #991b1b; }
+        .badge-orange { background: #fed7aa; color: #9a3412; }
+        .badge-blue { background: #dbeafe; color: #1e40af; }
+
+        .btn-sm { padding: 4px 10px; font-size: 12px; margin-right: 6px; border-radius: 4px; border: none; cursor: pointer; }
+        .btn-danger { background: #ef4444; color: #fff; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-success { background: #10b981; color: #fff; }
+        .btn-success:hover { background: #059669; }
+        .btn-gray { background: #6b7280; color: #fff; }
+        .btn-gray:hover { background: #4b5563; }
+
+        .empty { text-align: center; padding: 40px; color: #9ca3af; }
+
+        .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal { background: #fff; border-radius: 8px; padding: 24px; width: 400px; }
+        .modal h3 { margin: 0 0 16px; font-size: 16px; }
+        .modal input { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 16px; box-sizing: border-box; }
+        .modal .actions { display: flex; gap: 10px; justify-content: flex-end; }
+    </style>
+</head>
+<body>
+
+<div id="app" class="admin-layout">
+    <!-- 侧边栏 -->
+    <div class="sidebar">
+        <h2>🛠 管理后台</h2>
+        <div class="menu-item" :class="{active: tab==='stats'}" @click="switchTab('stats')">📊 数据概览</div>
+        <div class="menu-item" :class="{active: tab==='user'}" @click="switchTab('user')">👥 用户管理</div>
+        <div class="menu-item" :class="{active: tab==='item'}" @click="switchTab('item')">📦 物品管理</div>
+        <div class="menu-item" :class="{active: tab==='apply'}" @click="switchTab('apply')">🔄 申请管理</div>
+        <div class="menu-item logout" @click="logout()">🚪 退出登录</div>
+    </div>
+
+    <!-- 主内容 -->
+    <div class="main">
+        <div class="header">
+            <h1>{{ tabTitle }}</h1>
+            <div class="admin-info">管理员：{{ userInfo?.username || '' }} | <a href="index.html" style="color:#3b82f6">← 返回首页</a></div>
+        </div>
+
+        <!-- 数据概览 -->
+        <template v-if="tab === 'stats'">
+            <div class="stats-grid">
+                <div class="stat-card blue">
+                    <div class="label">用户总数</div>
+                    <div class="value">{{ stats.userCount }}</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="label">上架物品数</div>
+                    <div class="value">{{ stats.itemCount }}</div>
+                </div>
+                <div class="stat-card orange">
+                    <div class="label">物品总数（含下架）</div>
+                    <div class="value">{{ stats.totalItemCount }}</div>
+                </div>
+                <div class="stat-card purple">
+                    <div class="label">交换申请总数</div>
+                    <div class="value">{{ stats.applyCount }}</div>
+                </div>
+            </div>
+        </template>
+
+        <!-- 用户管理 -->
+        <template v-if="tab === 'user'">
+            <div class="content-card">
+                <table v-if="users.length">
+                    <thead>
+                    <tr>
+                        <th>ID</th><th>账号</th><th>姓名</th><th>手机号</th><th>角色</th><th>注册时间</th><th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="u in users" :key="u.id">
+                        <td>{{ u.id }}</td>
+                        <td>{{ u.username }}</td>
+                        <td>{{ u.realName || '-' }}</td>
+                        <td>{{ u.phone || '-' }}</td>
+                        <td>
+                            <span v-if="u.role === 1" class="badge badge-orange">管理员</span>
+                            <span v-else class="badge badge-blue">普通用户</span>
+                        </td>
+                        <td>{{ formatDate(u.createTime) }}</td>
+                        <td>
+                            <button class="btn-sm btn-success" @click="openResetPwd(u)">重置密码</button>
+                            <button class="btn-sm btn-danger" @click="deleteUser(u)" :disabled="u.role === 1" :title="u.role===1?'不能删除管理员':'删除用户'">删除</button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div v-else class="empty">暂无用户</div>
+            </div>
+        </template>
+
+        <!-- 物品管理 -->
+        <template v-if="tab === 'item'">
+            <div class="content-card">
+                <table v-if="items.length">
+                    <thead>
+                    <tr>
+                        <th>ID</th><th>物品名称</th><th>分类</th><th>发布者</th><th>状态</th><th>发布时间</th><th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="it in items" :key="it.id">
+                        <td>{{ it.id }}</td>
+                        <td>{{ it.itemName }}</td>
+                        <td>{{ it.categoryName }}</td>
+                        <td>{{ it.username }}</td>
+                        <td>
+                            <span v-if="it.status === 1" class="badge badge-green">上架中</span>
+                            <span v-else-if="it.status === 2" class="badge badge-orange">已交换</span>
+                            <span v-else class="badge badge-gray">已下架</span>
+                        </td>
+                        <td>{{ formatDate(it.createTime) }}</td>
+                        <td>
+                            <button v-if="it.status === 1" class="btn-sm btn-gray" @click="updateItemStatus(it, 3)">下架</button>
+                            <button v-else-if="it.status === 3" class="btn-sm btn-success" @click="updateItemStatus(it, 1)">上架</button>
+                            <button class="btn-sm btn-danger" @click="deleteItem(it)">删除</button>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div v-else class="empty">暂无物品</div>
+            </div>
+        </template>
+
+        <!-- 申请管理 -->
+        <template v-if="tab === 'apply'">
+            <div class="content-card">
+                <table v-if="applies.length">
+                    <thead>
+                    <tr>
+                        <th>ID</th><th>申请人</th><th>目标物品</th><th>留言</th><th>状态</th><th>申请时间</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="a in applies" :key="a.id">
+                        <td>{{ a.id }}</td>
+                        <td>{{ a.applyUsername }}</td>
+                        <td>{{ a.itemName }}</td>
+                        <td>{{ a.message || '-' }}</td>
+                        <td>
+                            <span v-if="a.applyStatus === 0" class="badge badge-orange">待处理</span>
+                            <span v-else-if="a.applyStatus === 1" class="badge badge-green">已同意</span>
+                            <span v-else class="badge badge-gray">已拒绝</span>
+                        </td>
+                        <td>{{ formatDate(a.createTime) }}</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div v-else class="empty">暂无申请记录</div>
+            </div>
+        </template>
+
+        <!-- 重置密码弹窗 -->
+        <div v-if="showResetPwd" class="modal-mask" @click.self="showResetPwd=false">
+            <div class="modal">
+                <h3>为用户「{{ resetPwdUser?.username }}」重置密码</h3>
+                <input type="text" v-model="newPassword" placeholder="请输入新密码">
+                <div class="actions">
+                    <button class="btn-sm btn-gray" @click="showResetPwd=false">取消</button>
+                    <button class="btn-sm btn-success" @click="confirmResetPwd">确认重置</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="js/common.js"></script>
+<script>
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    createApp({
+        setup() {
+            const tab = ref('stats');
+            const userInfo = ref(getUserInfo());
+
+            const stats = ref({ userCount: 0, itemCount: 0, totalItemCount: 0, applyCount: 0 });
+            const users = ref([]);
+            const items = ref([]);
+            const applies = ref([]);
+
+            const showResetPwd = ref(false);
+            const resetPwdUser = ref(null);
+            const newPassword = ref('');
+
+            const tabTitle = computed(() => ({
+                stats: '📊 数据概览',
+                user: '👥 用户管理',
+                item: '📦 物品管理',
+                apply: '🔄 申请管理',
+            }[tab.value] || ''));
+
+            const switchTab = (t) => {
+                tab.value = t;
+                loadData();
+            };
+
+            const loadData = async () => {
+                try {
+                    if (tab.value === 'stats') {
+                        const res = await httpGet('/api/admin/stats');
+                        stats.value = res.data;
+                    } else if (tab.value === 'user') {
+                        const res = await httpGet('/api/admin/user/list');
+                        users.value = res.data;
+                    } else if (tab.value === 'item') {
+                        const res = await httpGet('/api/admin/item/list');
+                        items.value = res.data;
+                    } else if (tab.value === 'apply') {
+                        const res = await httpGet('/api/admin/apply/list');
+                        applies.value = res.data;
+                    }
+                } catch (e) {}
+            };
+
+            const openResetPwd = (u) => {
+                resetPwdUser.value = u;
+                newPassword.value = '';
+                showResetPwd.value = true;
+            };
+
+            const confirmResetPwd = async () => {
+                if (!newPassword.value.trim()) {
+                    showToast('请输入新密码', 'error'); return;
+                }
+                try {
+                    await httpPut('/api/admin/user/reset-pwd', { id: resetPwdUser.value.id, password: newPassword.value });
+                    showResetPwd.value = false;
+                    showToast('密码重置成功', 'success');
+                } catch (e) {}
+            };
+
+            const deleteUser = async (u) => {
+                if (u.role === 1) { showToast('不能删除管理员', 'error'); return; }
+                if (!confirm(`确定删除用户「${u.username}」吗？`)) return;
+                try {
+                    await fetch('/api/admin/user/delete/' + u.id, { method: 'DELETE', headers: { 'token': getToken() } });
+                    showToast('删除成功', 'success');
+                    loadData();
+                } catch (e) {}
+            };
+
+            const updateItemStatus = async (it, status) => {
+                try {
+                    await httpPut('/api/admin/item/status', { id: it.id, status });
+                    showToast(status === 1 ? '已上架' : '已下架', 'success');
+                    loadData();
+                } catch (e) {}
+            };
+
+            const deleteItem = async (it) => {
+                if (!confirm(`确定删除物品「${it.itemName}」吗？`)) return;
+                try {
+                    await fetch('/api/admin/item/delete/' + it.id, { method: 'DELETE', headers: { 'token': getToken() } });
+                    showToast('删除成功', 'success');
+                    loadData();
+                } catch (e) {}
+            };
+
+            onMounted(() => {
+                // 权限检查
+                if (!requireLogin()) return;
+                const info = getUserInfo();
+                if (!info || info.role !== 1) {
+                    showToast('无权访问管理后台', 'error');
+                    setTimeout(() => window.location.href = 'index.html', 1500);
+                    return;
+                }
+                loadData();
+            });
+
+            return {
+                tab, userInfo, tabTitle, stats, users, items, applies,
+                showResetPwd, resetPwdUser, newPassword,
+                switchTab, openResetPwd, confirmResetPwd, deleteUser, updateItemStatus, deleteItem,
+                formatDate, logout
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>

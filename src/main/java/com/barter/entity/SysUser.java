@@ -14,5 +14,7 @@ public class SysUser {
     private String password;
     private String realName;
     private String phone;
+    /** 0普通用户 1管理员 */
+    private Integer role;
     private LocalDateTime createTime;
 }
