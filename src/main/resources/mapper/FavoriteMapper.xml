@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.barter.mapper.FavoriteMapper">
+
+    <resultMap id="BaseResultMap" type="com.barter.entity.Favorite">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="item_id" property="itemId"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <resultMap id="ItemVOResultMap" type="com.barter.vo.IdleItemVO">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="item_name" property="itemName"/>
+        <result column="item_desc" property="itemDesc"/>
+        <result column="hope_exchange" property="hopeExchange"/>
+        <result column="images" property="images"/>
+        <result column="item_condition" property="itemCondition"/>
+        <result column="campus" property="campus"/>
+        <result column="view_count" property="viewCount"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="username" property="username"/>
+        <result column="category_name" property="categoryName"/>
+        <result column="favorited" property="favorited"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.barter.entity.Favorite" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO favorite (user_id, item_id) VALUES (#{userId}, #{itemId})
+    </insert>
+
+    <delete id="deleteByUserAndItem">
+        DELETE FROM favorite WHERE user_id = #{userId} AND item_id = #{itemId}
+    </delete>
+
+    <select id="selectByUserAndItem" resultMap="BaseResultMap">
+        SELECT * FROM favorite WHERE user_id = #{userId} AND item_id = #{itemId}
+    </select>
+
+    <select id="selectMyFavorites" resultMap="ItemVOResultMap">
+        SELECT i.*, u.username, c.category_name, 1 AS favorited
+        FROM favorite f
+        INNER JOIN idle_item i ON f.item_id = i.id
+        INNER JOIN sys_user u ON i.user_id = u.id
+        INNER JOIN item_category c ON i.category_id = c.id
+        WHERE f.user_id = #{userId} AND i.status = 1
+        ORDER BY f.create_time DESC
+    </select>
+
+    <select id="countByItemId" resultType="int">
+        SELECT COUNT(*) FROM favorite WHERE item_id = #{itemId}
+    </select>
+
+</mapper>

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.barter.mapper.ReviewMapper">
+
+    <resultMap id="BaseResultMap" type="com.barter.entity.Review">
+        <id column="id" property="id"/>
+        <result column="apply_id" property="applyId"/>
+        <result column="item_id" property="itemId"/>
+        <result column="from_user_id" property="fromUserId"/>
+        <result column="to_user_id" property="toUserId"/>
+        <result column="rating" property="rating"/>
+        <result column="content" property="content"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.barter.entity.Review" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO review (apply_id, item_id, from_user_id, to_user_id, rating, content)
+        VALUES (#{applyId}, #{itemId}, #{fromUserId}, #{toUserId}, #{rating}, #{content})
+    </insert>
+
+    <select id="selectByToUserId" resultType="java.util.LinkedHashMap">
+        SELECT r.*,
+               fu.username AS from_username, fu.avatar AS from_avatar,
+               i.item_name
+        FROM review r
+        INNER JOIN sys_user fu ON r.from_user_id = fu.id
+        LEFT JOIN idle_item i ON r.item_id = i.id
+        WHERE r.to_user_id = #{toUserId}
+        ORDER BY r.create_time DESC
+    </select>
+
+    <select id="selectByApplyId" resultMap="BaseResultMap">
+        SELECT * FROM review WHERE apply_id = #{applyId}
+    </select>
+
+    <select id="selectAvgRating" resultType="java.lang.Double">
+        SELECT ROUND(AVG(rating), 1) FROM review WHERE to_user_id = #{toUserId}
+    </select>
+
+</mapper>

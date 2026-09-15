@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员登录 - 校园闲置物品互助交换平台</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="app" v-cloak class="auth-container">
+    <div class="auth-box">
+        <h2>🛠 管理员登录</h2>
+        <div class="form-group">
+            <label>管理员账号</label>
+            <input type="text" v-model="loginForm.username" placeholder="请输入管理员账号">
+        </div>
+        <div class="form-group">
+            <label>密码</label>
+            <input type="password" v-model="loginForm.password" placeholder="请输入密码">
+        </div>
+        <button class="btn btn-primary" style="width:100%" @click="handleLogin" :disabled="loading">
+            {{ loading ? '登录中...' : '登 录' }}
+        </button>
+        <p style="text-align:center; margin-top:16px;">
+            <a href="login.html" style="color:#aaa; font-size:13px;">← 普通用户登录</a>
+        </p>
+    </div>
+</div>
+
+<script src="js/vue.global.js"></script>
+<script src="js/common.js"></script>
+<script>
+    const { createApp, ref } = Vue;
+
+    createApp({
+        setup() {
+            const loading = ref(false);
+            const loginForm = ref({ username: '', password: '' });
+
+            const handleLogin = async () => {
+                if (!loginForm.value.username || !loginForm.value.password) {
+                    showToast('请填写完整账号密码', 'error');
+                    return;
+                }
+                loading.value = true;
+                try {
+                    const res = await httpPost('/api/admin/login', loginForm.value);
+                    localStorage.setItem('token', res.data.token);
+                    localStorage.setItem('userInfo', JSON.stringify({
+                        userId: res.data.userId,
+                        username: res.data.username,
+                        realName: res.data.realName,
+                        avatar: res.data.avatar,
+                        userType: res.data.userType
+                    }));
+                    showToast('登录成功，欢迎回来！', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'admin.html';
+                    }, 800);
+                } catch (e) {
+                    // 错误已在拦截器中处理
+                } finally {
+                    loading.value = false;
+                }
+            };
+
+            return { loading, loginForm, handleLogin };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
