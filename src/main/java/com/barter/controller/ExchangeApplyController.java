@@ -51,4 +51,21 @@ public class ExchangeApplyController {
         applyService.confirm(userId, id);
         return Result.success("交换已确认完成", null);
     }
+
+    /** 填写/更新交易时间和地点 */
+    @PutMapping("/trade/{id}")
+    public Result<?> updateTrade(@PathVariable Long id, @RequestBody java.util.Map<String, String> body,
+                                 HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        applyService.updateTrade(userId, id, body.get("tradeTime"), body.get("tradeLocation"));
+        return Result.success("交易信息已提交，请等待对方确认", null);
+    }
+
+    /** 确认对方提出的交易时间地点 */
+    @PutMapping("/trade/confirm/{id}")
+    public Result<?> confirmTrade(@PathVariable Long id, HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        applyService.confirmTrade(userId, id);
+        return Result.success("已确认交易信息", null);
+    }
 }

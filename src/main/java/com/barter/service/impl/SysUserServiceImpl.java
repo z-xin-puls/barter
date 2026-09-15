@@ -78,4 +78,17 @@ public class SysUserServiceImpl implements SysUserService {
         result.put("userType", "user");
         return result;
     }
+
+    @Override
+    public void resetPassword(String username) {
+        if (username == null || username.trim().isEmpty()) {
+            throw new BusinessException("账号不能为空");
+        }
+        SysUser user = userMapper.selectByUsername(username);
+        if (user == null) {
+            throw new BusinessException("账号不存在");
+        }
+        // 重置为默认密码 123456（BCrypt 加密）
+        userMapper.updatePassword(user.getId(), passwordEncoder.encode("123456"));
+    }
 }

@@ -5,6 +5,7 @@ E:\idea project\barter\src\main\java\com\barter\dto\AiChatDTO.java
 E:\idea project\barter\src\main\java\com\barter\dto\RegisterDTO.java
 E:\idea project\barter\src\main\java\com\barter\mapper\NotificationMapper.java
 E:\idea project\barter\src\main\java\com\barter\vo\IdleItemVO.java
+E:\idea project\barter\src\main\java\com\barter\mapper\ChatMessageMapper.java
 E:\idea project\barter\src\main\java\com\barter\service\ReviewService.java
 E:\idea project\barter\src\main\java\com\barter\mapper\SysUserMapper.java
 E:\idea project\barter\src\main\java\com\barter\common\BusinessException.java
@@ -21,6 +22,7 @@ E:\idea project\barter\src\main\java\com\barter\controller\AdminController.java
 E:\idea project\barter\src\main\java\com\barter\mapper\ReportMapper.java
 E:\idea project\barter\src\main\java\com\barter\entity\ExchangeApply.java
 E:\idea project\barter\src\main\java\com\barter\service\impl\AiChatServiceImpl.java
+E:\idea project\barter\src\main\java\com\barter\controller\ChatController.java
 E:\idea project\barter\src\main\java\com\barter\vo\ExchangeApplyVO.java
 E:\idea project\barter\src\main\java\com\barter\entity\Report.java
 E:\idea project\barter\src\main\java\com\barter\service\impl\AdminServiceImpl.java
@@ -42,11 +44,14 @@ E:\idea project\barter\src\main\java\com\barter\controller\NotificationControlle
 E:\idea project\barter\src\main\java\com\barter\service\SysUserService.java
 E:\idea project\barter\src\main\java\com\barter\controller\ReportController.java
 E:\idea project\barter\src\main\java\com\barter\controller\SysUserController.java
+E:\idea project\barter\src\main\java\com\barter\service\ChatMessageService.java
 E:\idea project\barter\src\main\java\com\barter\config\AdminAuthInterceptor.java
 E:\idea project\barter\src\main\java\com\barter\config\DataInitializer.java
 E:\idea project\barter\src\main\java\com\barter\config\CorsConfig.java
 E:\idea project\barter\src\main\java\com\barter\service\impl\ReviewServiceImpl.java
+E:\idea project\barter\src\main\java\com\barter\entity\ChatMessage.java
 E:\idea project\barter\src\main\java\com\barter\entity\AiChatRecord.java
+E:\idea project\barter\src\main\java\com\barter\service\impl\ChatMessageServiceImpl.java
 E:\idea project\barter\src\main\java\com\barter\service\impl\ItemCategoryServiceImpl.java
 E:\idea project\barter\src\main\java\com\barter\service\impl\ExchangeApplyServiceImpl.java
 E:\idea project\barter\src\main\java\com\barter\common\GlobalExceptionHandler.java

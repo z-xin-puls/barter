@@ -23,6 +23,19 @@ public interface ExchangeApplyMapper {
 
     int updateStatus(@Param("id") Long id, @Param("applyStatus") Integer applyStatus);
 
+    /** 更新交易时间地点（填写方确认） */
+    int updateTradeInfo(@Param("id") Long id, @Param("tradeTime") String tradeTime,
+                        @Param("tradeLocation") String tradeLocation, @Param("tradeConfirmer") Integer tradeConfirmer);
+
+    /** 标记申请人确认 */
+    int updateApplyConfirmed(@Param("id") Long id);
+
+    /** 标记发布者确认 */
+    int updateOwnerConfirmed(@Param("id") Long id);
+
+    /** 更新交易信息确认状态：1待对方确认 2双方已确认 */
+    int updateTradeStatus(@Param("id") Long id, @Param("tradeStatus") Integer tradeStatus);
+
     /** 基础查询 */
     ExchangeApply selectById(Long id);
 

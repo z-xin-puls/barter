@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.barter.mapper.ChatMessageMapper">
+
+    <resultMap id="BaseResultMap" type="com.barter.entity.ChatMessage">
+        <id column="id" property="id"/>
+        <result column="sender_id" property="senderId"/>
+        <result column="receiver_id" property="receiverId"/>
+        <result column="apply_id" property="applyId"/>
+        <result column="content" property="content"/>
+        <result column="is_read" property="isRead"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.barter.entity.ChatMessage" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chat_message (sender_id, receiver_id, apply_id, content, is_read)
+        VALUES (#{senderId}, #{receiverId}, #{applyId}, #{content}, 0)
+    </insert>
+
+    <!-- 双向聊天记录：我发的或我收的 -->
+    <select id="selectConversation" resultMap="BaseResultMap">
+        SELECT * FROM chat_message
+        WHERE (sender_id = #{userId} AND receiver_id = #{otherUserId})
+           OR (sender_id = #{otherUserId} AND receiver_id = #{userId})
+        ORDER BY create_time ASC
+    </select>
+
+    <select id="countUnread" resultType="int">
+        SELECT COUNT(*) FROM chat_message WHERE receiver_id = #{userId} AND is_read = 0
+    </select>
+
+    <update id="markRead">
+        UPDATE chat_message SET is_read = 1
+        WHERE receiver_id = #{userId} AND sender_id = #{otherUserId} AND is_read = 0
+    </update>
+
+</mapper>

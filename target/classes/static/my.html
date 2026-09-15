@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>个人中心 - 校园闲置物品互助交换平台</title>
     <link rel="stylesheet" href="css/style.css">
+    <style>
+        .modal-mask { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal { background: #fff; border-radius: 8px; padding: 24px; }
+        .modal .actions { display: flex; gap: 10px; justify-content: flex-end; }
+    </style>
 </head>
 <body>
 
@@ -89,7 +94,9 @@
                         <th>申请人</th>
                         <th>目标物品</th>
                         <th>留言</th>
-                        <th>申请时间</th>
+                        <th>交易时间</th>
+                        <th>交易地点</th>
+                        <th>填写方</th>
                         <th>状态</th>
                         <th>操作</th>
                     </tr>
@@ -98,18 +105,47 @@
                     <tr v-for="a in receivedApplies" :key="a.id">
                         <td>{{ a.applyUsername }}</td>
                         <td>{{ a.itemName }}</td>
-                        <td style="max-width:200px;">{{ a.message || '-' }}</td>
-                        <td>{{ formatDate(a.createTime) }}</td>
+                        <td style="max-width:160px;">{{ a.message || '-' }}</td>
+                        <td>{{ a.tradeTime ? formatDate(a.tradeTime) : '-' }}</td>
+                        <td>{{ a.tradeLocation || '-' }}</td>
+                        <td>
+                            <span v-if="!a.tradeTime" style="color:#aaa;">未填写</span>
+                            <template v-else>
+                                <div style="font-size:12px;color:#888;margin-bottom:2px;">{{ a.tradeConfirmer === 1 ? '我提出的' : '对方提出的' }}</div>
+                                <span v-if="a.tradeStatus === 2" class="tag tag-success">✓ 双方已确认</span>
+                                <span v-else-if="a.tradeStatus === 1 && a.tradeConfirmer === 1" class="tag tag-warn">待对方确认</span>
+                                <span v-else-if="a.tradeStatus === 1" class="tag tag-warn">待我确认</span>
+                            </template>
+                        </td>
                         <td>
                             <span class="tag" :class="a.applyStatus === 0 ? 'tag-warn' : ((a.applyStatus === 1 || a.applyStatus === 3) ? 'tag-success' : 'tag-danger')">
                                 {{ STATUS_MAP[a.applyStatus] || '未知' }}
                             </span>
+                            <div v-if="a.applyStatus === 1" style="font-size:12px;color:#888;margin-top:4px;">
+                                <span v-if="a.ownerConfirmed === 1" style="color:#16a34a;">✓ 你已确认</span>
+                                <span v-else style="color:#f59e0b;">○ 你未确认</span>
+                                <span style="margin:0 4px;">|</span>
+                                <span v-if="a.applyConfirmed === 1" style="color:#16a34a;">✓ 对方已确认</span>
+                                <span v-else style="color:#f59e0b;">○ 对方未确认</span>
+                            </div>
                         </td>
-                        <td v-if="a.applyStatus === 0">
-                            <button class="btn btn-primary btn-sm" @click="handleApply(a.id, 1)">同意</button>
-                            <button class="btn btn-danger btn-sm" @click="handleApply(a.id, 2)" style="margin-left:6px;">拒绝</button>
+                        <td>
+                            <template v-if="a.applyStatus === 0">
+                                <button class="btn btn-primary btn-sm" @click="handleApply(a.id, 1)">同意</button>
+                                <button class="btn btn-danger btn-sm" @click="handleApply(a.id, 2)" style="margin-left:4px;">拒绝</button>
+                            </template>
+                            <template v-if="a.applyStatus === 1">
+                                <button v-if="a.tradeStatus !== 2" class="btn btn-primary btn-sm" @click="openTradeModal(a, false)">填写交易信息</button>
+                                <button v-if="a.tradeStatus === 1 && a.tradeConfirmer !== 1" class="btn btn-success btn-sm" @click="confirmTrade(a)">同意</button>
+                                <button v-if="a.tradeStatus === 1 && a.tradeConfirmer !== 1" class="btn btn-danger btn-sm" @click="openTradeModal(a, true)">反对</button>
+                                <span v-if="a.tradeStatus === 2" style="color:#16a34a;font-size:13px;">✓ 交易信息已确认</span>
+                                <span v-if="a.tradeStatus === 1 && a.tradeConfirmer === 1" style="color:#aaa;font-size:13px;">等待对方确认</span>
+                            </template>
+                            <button v-if="a.applyStatus === 1 || a.applyStatus === 3" class="btn btn-sm" style="background:#3b82f6;color:#fff;" @click="openChat(a.applyUserId, a.id)">💬 联系对方</button>
+                            <button v-if="a.applyStatus === 1 && a.ownerConfirmed !== 1" class="btn btn-success btn-sm" @click="confirmExchange(a.id)">我确认完成</button>
+                            <span v-if="a.applyStatus === 1 && a.ownerConfirmed === 1" style="color:#aaa;font-size:13px;">已确认，等对方</span>
+                            <span v-if="a.applyStatus !== 0 && a.applyStatus !== 1 && a.applyStatus !== 3" style="color:#aaa;">已处理</span>
                         </td>
-                        <td v-else style="color:#aaa;">已处理</td>
                     </tr>
                 </tbody>
             </table>
@@ -126,8 +162,11 @@
                 <thead>
                     <tr>
                         <th>目标物品</th>
+                        <th>对方</th>
                         <th>留言</th>
-                        <th>申请时间</th>
+                        <th>交易时间</th>
+                        <th>交易地点</th>
+                        <th>填写方</th>
                         <th>状态</th>
                         <th>操作</th>
                     </tr>
@@ -135,16 +174,43 @@
                 <tbody>
                     <tr v-for="a in myApplies" :key="a.id">
                         <td>{{ a.itemName }}</td>
-                        <td style="max-width:250px;">{{ a.message || '-' }}</td>
-                        <td>{{ formatDate(a.createTime) }}</td>
+                        <td>{{ a.ownerUsername || '-' }}</td>
+                        <td style="max-width:180px;">{{ a.message || '-' }}</td>
+                        <td>{{ a.tradeTime ? formatDate(a.tradeTime) : '-' }}</td>
+                        <td>{{ a.tradeLocation || '-' }}</td>
+                        <td>
+                            <span v-if="!a.tradeTime" style="color:#aaa;">未填写</span>
+                            <template v-else>
+                                <div style="font-size:12px;color:#888;margin-bottom:2px;">{{ a.tradeConfirmer === 0 ? '我提出的' : '对方提出的' }}</div>
+                                <span v-if="a.tradeStatus === 2" class="tag tag-success">✓ 双方已确认</span>
+                                <span v-else-if="a.tradeStatus === 1 && a.tradeConfirmer === 0" class="tag tag-warn">待对方确认</span>
+                                <span v-else-if="a.tradeStatus === 1" class="tag tag-warn">待我确认</span>
+                            </template>
+                        </td>
                         <td>
                             <span class="tag" :class="a.applyStatus === 0 ? 'tag-warn' : ((a.applyStatus === 1 || a.applyStatus === 3) ? 'tag-success' : 'tag-danger')">
                                 {{ STATUS_MAP[a.applyStatus] || '未知' }}
                             </span>
+                            <div v-if="a.applyStatus === 1" style="font-size:12px;color:#888;margin-top:4px;">
+                                <span v-if="a.applyConfirmed === 1" style="color:#16a34a;">✓ 你已确认</span>
+                                <span v-else style="color:#f59e0b;">○ 你未确认</span>
+                                <span style="margin:0 4px;">|</span>
+                                <span v-if="a.ownerConfirmed === 1" style="color:#16a34a;">✓ 对方已确认</span>
+                                <span v-else style="color:#f59e0b;">○ 对方未确认</span>
+                            </div>
                         </td>
                         <td>
-                            <button v-if="a.applyStatus === 1" class="btn btn-primary btn-sm" @click="confirmExchange(a.id)">确认完成交换</button>
-                            <span v-else style="color:#aaa;">-</span>
+                            <template v-if="a.applyStatus === 1">
+                                <button v-if="a.tradeStatus !== 2" class="btn btn-primary btn-sm" @click="openTradeModal(a, false)">填写交易信息</button>
+                                <button v-if="a.tradeStatus === 1 && a.tradeConfirmer !== 0" class="btn btn-success btn-sm" @click="confirmTrade(a)">同意</button>
+                                <button v-if="a.tradeStatus === 1 && a.tradeConfirmer !== 0" class="btn btn-danger btn-sm" @click="openTradeModal(a, true)">反对</button>
+                                <span v-if="a.tradeStatus === 2" style="color:#16a34a;font-size:13px;">✓ 交易信息已确认</span>
+                                <span v-if="a.tradeStatus === 1 && a.tradeConfirmer === 0" style="color:#aaa;font-size:13px;">等待对方确认</span>
+                            </template>
+                            <button v-if="a.applyStatus === 1 || a.applyStatus === 3" class="btn btn-sm" style="background:#3b82f6;color:#fff;" @click="openChat(a.ownerUserId, a.id)">💬 联系对方</button>
+                            <button v-if="a.applyStatus === 1 && a.applyConfirmed !== 1" class="btn btn-success btn-sm" @click="confirmExchange(a.id)">我确认完成</button>
+                            <span v-if="a.applyStatus === 1 && a.applyConfirmed === 1" style="color:#aaa;font-size:13px;">已确认，等对方</span>
+                            <span v-if="a.applyStatus !== 1" style="color:#aaa;">-</span>
                         </td>
                     </tr>
                 </tbody>
@@ -224,6 +290,57 @@
             <button @click="sendAI" :disabled="aiLoading">{{ aiLoading ? '发送中' : '发送' }}</button>
         </div>
     </div>
+
+    <!-- 交易信息填写弹窗 -->
+    <div v-if="tradeModal.show" class="modal-mask" @click.self="tradeModal.show = false">
+        <div class="modal" style="width:420px;">
+            <h3>{{ tradeModal.counter ? '反对并填写我的时间地点' : '填写交易时间与地点' }}</h3>
+            <div class="form-group">
+                <label>交易时间</label>
+                <input type="datetime-local" v-model="tradeModal.tradeTime" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:4px;box-sizing:border-box;">
+            </div>
+            <div class="form-group">
+                <label>交易地点</label>
+                <input type="text" v-model="tradeModal.tradeLocation" placeholder="如：主校区南门快递柜旁"
+                       style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:4px;box-sizing:border-box;">
+            </div>
+            <div class="actions">
+                <button class="btn-sm btn-gray" @click="tradeModal.show = false">取消</button>
+                <button class="btn-sm btn-success" @click="submitTrade">确认提交</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 用户聊天弹窗 -->
+    <div v-if="chatModal.show" class="modal-mask" @click.self="closeChat">
+        <div class="modal" style="width:460px;display:flex;flex-direction:column;max-height:80vh;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <h3 style="margin:0;">💬 与 {{ chatModal.otherName }} 的对话</h3>
+                <button @click="closeChat" style="border:none;background:none;font-size:20px;cursor:pointer;color:#aaa;">×</button>
+            </div>
+            <div ref="chatBoxRef" style="flex:1;overflow-y:auto;min-height:300px;max-height:50vh;padding:10px;background:#f9fafb;border-radius:8px;margin-bottom:10px;">
+                <div v-if="chatMessages.length === 0" style="text-align:center;padding:40px;color:#aaa;">暂无消息，发送第一条消息吧~</div>
+                <div v-for="msg in chatMessages" :key="msg.id"
+                     :style="{textAlign: msg.senderId === user.userId ? 'right' : 'left', marginBottom: '10px'}">
+                    <span :style="{display:'inline-block',maxWidth:'75%',padding:'8px 12px',borderRadius:'12px',fontSize:'14px',
+                        background: msg.senderId === user.userId ? '#667eea' : '#fff',
+                        color: msg.senderId === user.userId ? 'white' : '#333',
+                        border: msg.senderId === user.userId ? 'none' : '1px solid #e5e7eb'}">
+                        {{ msg.content }}
+                    </span>
+                    <div style="font-size:11px;color:#aaa;margin-top:2px;">{{ formatDate(msg.createTime) }}</div>
+                </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <input type="text" v-model="chatModal.input" placeholder="输入消息..."
+                       @keydown.enter.prevent="sendChatMessage"
+                       style="flex:1;padding:8px 12px;border:1px solid #d1d5db;border-radius:4px;">
+                <button class="btn btn-primary btn-sm" @click="sendChatMessage" :disabled="chatModal.sending">
+                    {{ chatModal.sending ? '...' : '发送' }}
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="js/vue.global.js"></script>
@@ -261,6 +378,100 @@
             const aiLoading = ref(false);
             const aiMessages = ref([]);
             const aiMessagesRef = ref(null);
+
+            // 交易信息弹窗（counter=true 表示反对对方方案并给出自己的）
+            const tradeModal = ref({ show: false, applyId: null, tradeTime: '', tradeLocation: '', counter: false });
+
+            // 聊天弹窗
+            const chatModal = ref({ show: false, otherUserId: null, otherName: '', applyId: null, input: '', sending: false });
+            const chatMessages = ref([]);
+            const chatBoxRef = ref(null);
+            let chatPollTimer = null;
+
+            const openTradeModal = (apply, counter = false) => {
+                tradeModal.value = {
+                    show: true,
+                    applyId: apply.id,
+                    counter,
+                    // 如果已有值，预填（格式化 datetime-local 需要去掉 T 和秒）
+                    tradeTime: apply.tradeTime ? apply.tradeTime.substring(0, 16) : '',
+                    tradeLocation: apply.tradeLocation || ''
+                };
+            };
+
+            const submitTrade = async () => {
+                if (!tradeModal.value.tradeTime || !tradeModal.value.tradeLocation.trim()) {
+                    showToast('请填写交易时间和地点', 'error');
+                    return;
+                }
+                try {
+                    await httpPut('/api/exchange/trade/' + tradeModal.value.applyId, {
+                        tradeTime: tradeModal.value.tradeTime,
+                        tradeLocation: tradeModal.value.tradeLocation.trim()
+                    });
+                    showToast('已提交，请等待对方确认', 'success');
+                    tradeModal.value.show = false;
+                    loadMyApply();
+                    loadReceived();
+                } catch (e) {}
+            };
+
+            // 同意对方提出的交易时间地点
+            const confirmTrade = async (apply) => {
+                if (!confirm('确认同意对方提出的交易时间与地点吗？')) return;
+                try {
+                    await httpPut('/api/exchange/trade/confirm/' + apply.id);
+                    showToast('已确认交易信息', 'success');
+                    loadMyApply();
+                    loadReceived();
+                } catch (e) {}
+            };
+
+            const openChat = async (otherUserId, applyId) => {
+                chatModal.value = {
+                    show: true, otherUserId, applyId,
+                    otherName: '', input: '', sending: false
+                };
+                // 获取对方用户名（通过已加载的数据找）
+                const found = [...myApplies.value, ...receivedApplies.value]
+                    .find(a => a.id === applyId);
+                chatModal.value.otherName = found ? (found.ownerUsername || found.applyUsername || '用户') : '用户';
+                await loadChatMessages();
+                // 启动轮询
+                chatPollTimer = setInterval(loadChatMessages, 5000);
+            };
+
+            const closeChat = () => {
+                chatModal.value.show = false;
+                chatMessages.value = [];
+                if (chatPollTimer) { clearInterval(chatPollTimer); chatPollTimer = null; }
+            };
+
+            const loadChatMessages = async () => {
+                if (!chatModal.value.otherUserId) return;
+                try {
+                    const res = await httpGet('/api/chat/conversation/' + chatModal.value.otherUserId);
+                    chatMessages.value = res.data;
+                    await nextTick();
+                    if (chatBoxRef.value) chatBoxRef.value.scrollTop = chatBoxRef.value.scrollHeight;
+                } catch (e) {}
+            };
+
+            const sendChatMessage = async () => {
+                if (!chatModal.value.input.trim()) return;
+                chatModal.value.sending = true;
+                try {
+                    await httpPost('/api/chat/send', {
+                        receiverId: chatModal.value.otherUserId,
+                        applyId: chatModal.value.applyId,
+                        content: chatModal.value.input.trim()
+                    });
+                    chatModal.value.input = '';
+                    await loadChatMessages();
+                } catch (e) {} finally {
+                    chatModal.value.sending = false;
+                }
+            };
 
             const loadMyItems = async () => {
                 try {
@@ -333,10 +544,10 @@
             };
 
             const confirmExchange = async (id) => {
-                if (!confirm('确定已完成本次交换吗？')) return;
+                if (!confirm('确认你已完成本次交换？对方也需要确认后交易才算完成。')) return;
                 try {
                     await httpPut('/api/exchange/confirm/' + id);
-                    showToast('交换已确认完成', 'success');
+                    showToast('已确认完成，等待对方确认', 'success');
                     loadMyApply();
                     loadReceived();
                 } catch (e) {}
@@ -388,6 +599,8 @@
                 myItems, receivedApplies, myApplies, favorites, aiHistory, loaded,
                 ITEM_STATUS_MAP, STATUS_MAP,
                 openAI, aiInput, aiLoading, aiMessages, aiMessagesRef,
+                tradeModal, chatModal, chatMessages, chatBoxRef,
+                openTradeModal, submitTrade, confirmTrade, openChat, closeChat, sendChatMessage,
                 loadMyItems, offItem, handleApply, confirmExchange, loadFavorites, sendAI,
                 logout, formatDate
             };

@@ -9,6 +9,12 @@
         <result column="item_id" property="itemId"/>
         <result column="owner_user_id" property="ownerUserId"/>
         <result column="message" property="message"/>
+        <result column="trade_time" property="tradeTime"/>
+        <result column="trade_location" property="tradeLocation"/>
+        <result column="trade_confirmer" property="tradeConfirmer"/>
+        <result column="trade_status" property="tradeStatus"/>
+        <result column="apply_confirmed" property="applyConfirmed"/>
+        <result column="owner_confirmed" property="ownerConfirmed"/>
         <result column="apply_status" property="applyStatus"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
@@ -21,6 +27,12 @@
         <result column="item_id" property="itemId"/>
         <result column="owner_user_id" property="ownerUserId"/>
         <result column="message" property="message"/>
+        <result column="trade_time" property="tradeTime"/>
+        <result column="trade_location" property="tradeLocation"/>
+        <result column="trade_confirmer" property="tradeConfirmer"/>
+        <result column="trade_status" property="tradeStatus"/>
+        <result column="apply_confirmed" property="applyConfirmed"/>
+        <result column="owner_confirmed" property="ownerConfirmed"/>
         <result column="apply_status" property="applyStatus"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
@@ -85,6 +97,24 @@
 
     <update id="updateStatus">
         UPDATE exchange_apply SET apply_status = #{applyStatus}, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="updateTradeInfo">
+        UPDATE exchange_apply SET trade_time = #{tradeTime}, trade_location = #{tradeLocation},
+               trade_confirmer = #{tradeConfirmer}, trade_status = 1, update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateTradeStatus">
+        UPDATE exchange_apply SET trade_status = #{tradeStatus}, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="updateApplyConfirmed">
+        UPDATE exchange_apply SET apply_confirmed = 1, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="updateOwnerConfirmed">
+        UPDATE exchange_apply SET owner_confirmed = 1, update_time = NOW() WHERE id = #{id}
     </update>
 
     <select id="selectAll" resultMap="VOResultMap">

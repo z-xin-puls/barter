@@ -29,8 +29,28 @@
             <button class="btn btn-primary" style="width:100%" @click="handleLogin" :disabled="loading">
                 {{ loading ? '登录中...' : '登 录' }}
             </button>
-            <p style="text-align:center; margin-top:16px; color:#aaa; font-size:13px;">
+            <p style="text-align:right; margin-top:8px;">
+                <a href="#" @click.prevent="mode = 'forgot'" style="color:#3b82f6; font-size:13px; text-decoration:none;">忘记密码？</a>
+            </p>
+            <p style="text-align:center; margin-top:8px; color:#aaa; font-size:13px;">
                 测试账号：test / 123456
+            </p>
+            <p style="text-align:center; margin-top:8px;">
+                <a href="admin-login.html" style="color:#3b82f6; font-size:13px; text-decoration:none;">管理员登录 →</a>
+            </p>
+        </div>
+
+        <!-- 忘记密码表单 -->
+        <div v-if="mode === 'forgot'">
+            <div class="form-group">
+                <label>账号</label>
+                <input type="text" v-model="forgotForm.username" placeholder="请输入要重置的账号">
+            </div>
+            <button class="btn btn-primary" style="width:100%" @click="handleResetPassword" :disabled="loading">
+                {{ loading ? '重置中...' : '重置密码为 123456' }}
+            </button>
+            <p style="text-align:center; margin-top:12px;">
+                <a href="#" @click.prevent="mode = 'login'" style="color:#aaa; font-size:13px; text-decoration:none;">← 返回登录</a>
             </p>
         </div>
 
@@ -91,6 +111,29 @@
                 department: ''
             });
 
+            const forgotForm = ref({ username: '' });
+
+            // 忘记密码
+            const handleResetPassword = async () => {
+                if (!forgotForm.value.username) {
+                    showToast('请输入账号', 'error');
+                    return;
+                }
+                loading.value = true;
+                try {
+                    await httpPost('/api/user/resetPassword', { username: forgotForm.value.username });
+                    showToast('密码已重置为 123456，请使用新密码登录', 'success');
+                    mode.value = 'login';
+                    loginForm.value.username = forgotForm.value.username;
+                    loginForm.value.password = '';
+                    forgotForm.value.username = '';
+                } catch (e) {
+                    // 错误已在拦截器中处理
+                } finally {
+                    loading.value = false;
+                }
+            };
+
             // 用户登录
             const handleLogin = async () => {
                 if (!loginForm.value.username || !loginForm.value.password) {
@@ -140,8 +183,8 @@
             };
 
             return {
-                mode, loading, loginForm, registerForm,
-                handleLogin, handleRegister
+                mode, loading, loginForm, registerForm, forgotForm,
+                handleLogin, handleRegister, handleResetPassword
             };
         }
     }).mount('#app');

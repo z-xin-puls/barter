@@ -32,6 +32,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/api/user/register",
                         "/api/user/login",
+                        "/api/user/resetPassword",
                         "/api/admin/login",
                         "/api/category/list",
                         "/api/item/page",

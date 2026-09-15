@@ -36,4 +36,13 @@ public class SysUserController {
         Map<String, Object> data = userService.login(dto);
         return Result.success("登录成功", data);
     }
+
+    /**
+     * 忘记密码：重置密码为 123456
+     */
+    @PostMapping("/resetPassword")
+    public Result<?> resetPassword(@RequestBody Map<String, String> body) {
+        userService.resetPassword(body.get("username"));
+        return Result.success("密码已重置为 123456，请使用新密码登录", null);
+    }
 }

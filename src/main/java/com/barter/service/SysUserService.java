@@ -19,4 +19,9 @@ public interface SysUserService {
      * 用户登录，返回 token 和用户信息
      */
     Map<String, Object> login(LoginDTO dto);
+
+    /**
+     * 忘记密码：重置密码为 123456
+     */
+    void resetPassword(String username);
 }

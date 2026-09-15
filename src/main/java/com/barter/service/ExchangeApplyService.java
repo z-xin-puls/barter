@@ -22,4 +22,10 @@ public interface ExchangeApplyService {
 
     /** 申请人确认交换完成 */
     void confirm(Long userId, Long applyId);
+
+    /** 填写/更新交易时间和地点 */
+    void updateTrade(Long userId, Long applyId, String tradeTime, String tradeLocation);
+
+    /** 确认对方提出的交易时间地点 */
+    void confirmTrade(Long userId, Long applyId);
 }
