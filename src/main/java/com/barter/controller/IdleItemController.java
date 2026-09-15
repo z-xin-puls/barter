@@ -2,8 +2,9 @@ package com.barter.controller;
 
 import com.barter.common.Result;
 import com.barter.dto.ItemAddDTO;
-import com.barter.entity.IdleItem;
+import com.barter.dto.ItemQueryDTO;
 import com.barter.service.IdleItemService;
+import com.barter.vo.IdleItemVO;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -21,9 +22,6 @@ public class IdleItemController {
     @Autowired
     private IdleItemService itemService;
 
-    /**
-     * 发布闲置物品
-     */
     @PostMapping("/add")
     public Result<?> add(@RequestBody ItemAddDTO dto, HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
@@ -32,20 +30,23 @@ public class IdleItemController {
     }
 
     /**
-     * 分页查询闲置物品
+     * 分页查询（支持关键词搜索、分类、成色、校区筛选）
      */
     @GetMapping("/page")
-    public Result<Map<String, Object>> page(
-            @RequestParam(defaultValue = "1") Integer pageNum,
-            @RequestParam(defaultValue = "10") Integer pageSize,
-            @RequestParam(required = false) Long categoryId) {
-        Map<String, Object> data = itemService.page(pageNum, pageSize, categoryId);
-        return Result.success(data);
+    public Result<Map<String, Object>> page(ItemQueryDTO query, HttpServletRequest request) {
+        Long currentUserId = (Long) request.getAttribute("userId");
+        return Result.success(itemService.page(query, currentUserId));
     }
 
     /**
-     * 下架物品
+     * 物品详情
      */
+    @GetMapping("/detail/{id}")
+    public Result<IdleItemVO> detail(@PathVariable Long id, HttpServletRequest request) {
+        Long currentUserId = (Long) request.getAttribute("userId");
+        return Result.success(itemService.detail(id, currentUserId));
+    }
+
     @PutMapping("/off/{id}")
     public Result<?> off(@PathVariable Long id, HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
@@ -53,13 +54,9 @@ public class IdleItemController {
         return Result.success("下架成功", null);
     }
 
-    /**
-     * 查询我的发布
-     */
     @GetMapping("/my")
-    public Result<List<IdleItem>> myItems(HttpServletRequest request) {
+    public Result<List<IdleItemVO>> myItems(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
-        List<IdleItem> list = itemService.myItems(userId);
-        return Result.success(list);
+        return Result.success(itemService.myItems(userId));
     }
 }

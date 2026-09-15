@@ -14,7 +14,14 @@ public class SysUser {
     private String password;
     private String realName;
     private String phone;
-    /** 0普通用户 1管理员 */
-    private Integer role;
+    /** 学号 */
+    private String studentNo;
+    /** 院系 */
+    private String department;
+    /** 头像URL */
+    private String avatar;
+    /** 1正常 0封禁 */
+    private Integer status;
     private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 }

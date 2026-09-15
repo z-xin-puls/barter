@@ -1,41 +1,77 @@
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\dto\ExchangeApplyDTO.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\mapper\SysUserMapper.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\entity\SysUser.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\service\impl\ExchangeApplyServiceImpl.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\controller\SysUserController.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\mapper\IdleItemMapper.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\entity\ItemCategory.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\entity\IdleItem.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\dto\ExchangeHandleDTO.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\config\WebMvcConfig.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\dto\ItemAddDTO.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\config\JwtInterceptor.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\controller\AiChatController.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\config\CorsConfig.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\dto\AiChatDTO.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\service\IdleItemService.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\controller\ItemCategoryController.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\service\impl\IdleItemServiceImpl.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\entity\AiChatRecord.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\service\impl\AiChatServiceImpl.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\dto\RegisterDTO.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\common\Result.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\BarterApplication.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\service\impl\ItemCategoryServiceImpl.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\controller\ExchangeApplyController.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\controller\IdleItemController.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\service\SysUserService.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\service\AiChatService.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\config\AdminAuthInterceptor.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\config\AiConfig.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\mapper\ExchangeApplyMapper.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\service\ExchangeApplyService.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\controller\AdminController.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\service\ItemCategoryService.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\mapper\ItemCategoryMapper.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\common\JwtUtil.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\entity\ExchangeApply.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\service\impl\SysUserServiceImpl.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\common\GlobalExceptionHandler.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\mapper\AiChatRecordMapper.java
-E:\CodeSolution\Java\PracticalTraining\barter\src\main\java\com\barter\dto\LoginDTO.java
+E:\idea project\barter\src\main\java\com\barter\dto\ExchangeApplyDTO.java
+E:\idea project\barter\src\main\java\com\barter\config\PasswordEncoderConfig.java
+E:\idea project\barter\src\main\java\com\barter\entity\Review.java
+E:\idea project\barter\src\main\java\com\barter\dto\AiChatDTO.java
+E:\idea project\barter\src\main\java\com\barter\dto\RegisterDTO.java
+E:\idea project\barter\src\main\java\com\barter\mapper\NotificationMapper.java
+E:\idea project\barter\src\main\java\com\barter\vo\IdleItemVO.java
+E:\idea project\barter\src\main\java\com\barter\service\ReviewService.java
+E:\idea project\barter\src\main\java\com\barter\mapper\SysUserMapper.java
+E:\idea project\barter\src\main\java\com\barter\common\BusinessException.java
+E:\idea project\barter\src\main\java\com\barter\config\RestTemplateConfig.java
+E:\idea project\barter\src\main\java\com\barter\service\NotificationService.java
+E:\idea project\barter\src\main\java\com\barter\service\impl\ReportServiceImpl.java
+E:\idea project\barter\src\main\java\com\barter\service\impl\IdleItemServiceImpl.java
+E:\idea project\barter\src\main\java\com\barter\controller\AiChatController.java
+E:\idea project\barter\src\main\java\com\barter\mapper\ExchangeApplyMapper.java
+E:\idea project\barter\src\main\java\com\barter\service\impl\FavoriteServiceImpl.java
+E:\idea project\barter\src\main\java\com\barter\mapper\ReviewMapper.java
+E:\idea project\barter\src\main\java\com\barter\mapper\IdleItemMapper.java
+E:\idea project\barter\src\main\java\com\barter\controller\AdminController.java
+E:\idea project\barter\src\main\java\com\barter\mapper\ReportMapper.java
+E:\idea project\barter\src\main\java\com\barter\entity\ExchangeApply.java
+E:\idea project\barter\src\main\java\com\barter\service\impl\AiChatServiceImpl.java
+E:\idea project\barter\src\main\java\com\barter\vo\ExchangeApplyVO.java
+E:\idea project\barter\src\main\java\com\barter\entity\Report.java
+E:\idea project\barter\src\main\java\com\barter\service\impl\AdminServiceImpl.java
+E:\idea project\barter\src\main\java\com\barter\BarterApplication.java
+E:\idea project\barter\src\main\java\com\barter\entity\Notification.java
+E:\idea project\barter\src\main\java\com\barter\config\WebMvcConfig.java
+E:\idea project\barter\src\main\java\com\barter\service\IdleItemService.java
+E:\idea project\barter\src\main\java\com\barter\dto\ItemQueryDTO.java
+E:\idea project\barter\src\main\java\com\barter\mapper\FavoriteMapper.java
+E:\idea project\barter\src\main\java\com\barter\service\impl\SysUserServiceImpl.java
+E:\idea project\barter\src\main\java\com\barter\dto\LoginDTO.java
+E:\idea project\barter\src\main\java\com\barter\common\Result.java
+E:\idea project\barter\src\main\java\com\barter\dto\ExchangeHandleDTO.java
+E:\idea project\barter\src\main\java\com\barter\controller\ReviewController.java
+E:\idea project\barter\src\main\java\com\barter\config\AiConfig.java
+E:\idea project\barter\src\main\java\com\barter\entity\AdminUser.java
+E:\idea project\barter\src\main\java\com\barter\dto\ResetPasswordDTO.java
+E:\idea project\barter\src\main\java\com\barter\controller\NotificationController.java
+E:\idea project\barter\src\main\java\com\barter\service\SysUserService.java
+E:\idea project\barter\src\main\java\com\barter\controller\ReportController.java
+E:\idea project\barter\src\main\java\com\barter\controller\SysUserController.java
+E:\idea project\barter\src\main\java\com\barter\config\AdminAuthInterceptor.java
+E:\idea project\barter\src\main\java\com\barter\config\DataInitializer.java
+E:\idea project\barter\src\main\java\com\barter\config\CorsConfig.java
+E:\idea project\barter\src\main\java\com\barter\service\impl\ReviewServiceImpl.java
+E:\idea project\barter\src\main\java\com\barter\entity\AiChatRecord.java
+E:\idea project\barter\src\main\java\com\barter\service\impl\ItemCategoryServiceImpl.java
+E:\idea project\barter\src\main\java\com\barter\service\impl\ExchangeApplyServiceImpl.java
+E:\idea project\barter\src\main\java\com\barter\common\GlobalExceptionHandler.java
+E:\idea project\barter\src\main\java\com\barter\dto\ItemStatusDTO.java
+E:\idea project\barter\src\main\java\com\barter\entity\SysUser.java
+E:\idea project\barter\src\main\java\com\barter\controller\ItemCategoryController.java
+E:\idea project\barter\src\main\java\com\barter\entity\IdleItem.java
+E:\idea project\barter\src\main\java\com\barter\controller\FavoriteController.java
+E:\idea project\barter\src\main\java\com\barter\mapper\AdminUserMapper.java
+E:\idea project\barter\src\main\java\com\barter\service\AiChatService.java
+E:\idea project\barter\src\main\java\com\barter\dto\ItemAddDTO.java
+E:\idea project\barter\src\main\java\com\barter\dto\ReportDTO.java
+E:\idea project\barter\src\main\java\com\barter\controller\ExchangeApplyController.java
+E:\idea project\barter\src\main\java\com\barter\mapper\AiChatRecordMapper.java
+E:\idea project\barter\src\main\java\com\barter\mapper\ItemCategoryMapper.java
+E:\idea project\barter\src\main\java\com\barter\dto\ReviewDTO.java
+E:\idea project\barter\src\main\java\com\barter\service\ExchangeApplyService.java
+E:\idea project\barter\src\main\java\com\barter\controller\IdleItemController.java
+E:\idea project\barter\src\main\java\com\barter\entity\Favorite.java
+E:\idea project\barter\src\main\java\com\barter\config\JwtInterceptor.java
+E:\idea project\barter\src\main\java\com\barter\common\JwtUtil.java
+E:\idea project\barter\src\main\java\com\barter\service\impl\NotificationServiceImpl.java
+E:\idea project\barter\src\main\java\com\barter\entity\ItemCategory.java
+E:\idea project\barter\src\main\java\com\barter\service\ItemCategoryService.java
+E:\idea project\barter\src\main\java\com\barter\controller\FileController.java
+E:\idea project\barter\src\main\java\com\barter\service\AdminService.java
+E:\idea project\barter\src\main\java\com\barter\service\FavoriteService.java
+E:\idea project\barter\src\main\java\com\barter\service\ReportService.java

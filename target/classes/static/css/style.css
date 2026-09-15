@@ -1,4 +1,10 @@
 /* 校园闲置物品互助交换平台 - 公共样式 */
+
+/* Vue 模板编译前隐藏，防止 {{ }} 闪烁 */
+[v-cloak] {
+    display: none !important;
+}
+
 * {
     margin: 0;
     padding: 0;

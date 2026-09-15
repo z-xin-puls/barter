@@ -4,6 +4,9 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -12,62 +15,67 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * JWT 工具类
+ * JWT 工具类（Spring Bean，密钥通过配置注入）
  */
+@Component
 public class JwtUtil {
 
-    // 密钥（至少32字节=256bit，HS256要求）
-    private static final String SECRET = "barter-platform-secret-key-2024-jwt";
-    // 过期时间 24小时
-    private static final long EXPIRE = 24 * 60 * 60 * 1000;
-    // 转换为 SecretKey
-    private static final SecretKey KEY = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
+    @Value("${jwt.secret}")
+    private String secret;
+
+    @Value("${jwt.expire:86400000}")
+    private long expire;
+
+    private SecretKey key;
+
+    @PostConstruct
+    public void init() {
+        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
 
     /**
-     * 生成token（带role）
+     * 生成token（带用户类型 user/admin）
      */
-    public static String generateToken(Long userId, String username, Integer role) {
+    public String generateToken(Long userId, String username, String userType) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId);
         claims.put("username", username);
-        claims.put("role", role);
+        claims.put("userType", userType);
         return Jwts.builder()
                 .setClaims(claims)
                 .setSubject(username)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRE))
-                .signWith(KEY, SignatureAlgorithm.HS256)
+                .setExpiration(new Date(System.currentTimeMillis() + expire))
+                .signWith(key, SignatureAlgorithm.HS256)
                 .compact();
     }
 
     /**
      * 解析token
      */
-    public static Claims parseToken(String token) {
+    public Claims parseToken(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(KEY)
+                .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
     }
 
-    public static Long getUserId(String token) {
+    public Long getUserId(String token) {
         Claims claims = parseToken(token);
         Object id = claims.get("userId");
         if (id instanceof Integer) return ((Integer) id).longValue();
         return (Long) id;
     }
 
-    public static String getUsername(String token) {
+    public String getUsername(String token) {
         Claims claims = parseToken(token);
         return claims.get("username", String.class);
     }
 
-    public static Integer getRole(String token) {
+    public String getUserType(String token) {
         Claims claims = parseToken(token);
-        Object role = claims.get("role");
-        if (role == null) return 0;
-        if (role instanceof Integer) return (Integer) role;
-        return ((Number) role).intValue();
+        Object type = claims.get("userType");
+        return type == null ? "user" : type.toString();
     }
 }

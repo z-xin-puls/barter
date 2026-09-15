@@ -2,54 +2,105 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.barter.mapper.ExchangeApplyMapper">
 
-    <resultMap id="BaseResultMap" type="com.barter.entity.ExchangeApply">
+    <!-- 实体映射 -->
+    <resultMap id="EntityResultMap" type="com.barter.entity.ExchangeApply">
         <id column="id" property="id"/>
         <result column="apply_user_id" property="applyUserId"/>
         <result column="item_id" property="itemId"/>
+        <result column="owner_user_id" property="ownerUserId"/>
         <result column="message" property="message"/>
         <result column="apply_status" property="applyStatus"/>
         <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- VO 映射（含双方用户和物品信息） -->
+    <resultMap id="VOResultMap" type="com.barter.vo.ExchangeApplyVO">
+        <id column="id" property="id"/>
+        <result column="apply_user_id" property="applyUserId"/>
+        <result column="item_id" property="itemId"/>
+        <result column="owner_user_id" property="ownerUserId"/>
+        <result column="message" property="message"/>
+        <result column="apply_status" property="applyStatus"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
         <result column="apply_username" property="applyUsername"/>
+        <result column="apply_user_avatar" property="applyUserAvatar"/>
+        <result column="apply_student_no" property="applyStudentNo"/>
+        <result column="owner_username" property="ownerUsername"/>
         <result column="item_name" property="itemName"/>
+        <result column="item_images" property="itemImages"/>
     </resultMap>
 
     <insert id="insert" parameterType="com.barter.entity.ExchangeApply" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO exchange_apply (apply_user_id, item_id, message, apply_status)
-        VALUES (#{applyUserId}, #{itemId}, #{message}, #{applyStatus})
+        INSERT INTO exchange_apply (apply_user_id, item_id, owner_user_id, message, apply_status)
+        VALUES (#{applyUserId}, #{itemId}, #{ownerUserId}, #{message}, #{applyStatus})
     </insert>
 
-    <select id="selectMyApply" resultMap="BaseResultMap">
-        SELECT e.*, u.username AS apply_username, i.item_name
+    <!-- 我发起的申请 -->
+    <select id="selectMyApply" resultMap="VOResultMap">
+        SELECT e.*,
+               au.username AS apply_username, au.avatar AS apply_user_avatar, au.student_no AS apply_student_no,
+               ou.username AS owner_username,
+               i.item_name, i.images AS item_images
         FROM exchange_apply e
-        LEFT JOIN sys_user u ON e.apply_user_id = u.id
-        LEFT JOIN idle_item i ON e.item_id = i.id
+        INNER JOIN sys_user au ON e.apply_user_id = au.id
+        INNER JOIN idle_item i ON e.item_id = i.id
+        LEFT JOIN sys_user ou ON e.owner_user_id = ou.id
         WHERE e.apply_user_id = #{applyUserId}
         ORDER BY e.create_time DESC
     </select>
 
-    <select id="selectReceivedApply" resultMap="BaseResultMap">
-        SELECT e.*, u.username AS apply_username, i.item_name
+    <!-- 我收到的申请（按冗余的 owner_user_id 查询，无需 JOIN item 表定位发布者） -->
+    <select id="selectReceivedApply" resultMap="VOResultMap">
+        SELECT e.*,
+               au.username AS apply_username, au.avatar AS apply_user_avatar, au.student_no AS apply_student_no,
+               ou.username AS owner_username,
+               i.item_name, i.images AS item_images
         FROM exchange_apply e
-        LEFT JOIN sys_user u ON e.apply_user_id = u.id
-        LEFT JOIN idle_item i ON e.item_id = i.id
-        WHERE i.user_id = #{userId}
+        INNER JOIN sys_user au ON e.apply_user_id = au.id
+        INNER JOIN idle_item i ON e.item_id = i.id
+        LEFT JOIN sys_user ou ON e.owner_user_id = ou.id
+        WHERE e.owner_user_id = #{ownerUserId}
         ORDER BY e.create_time DESC
     </select>
 
-    <select id="selectById" resultMap="BaseResultMap">
+    <!-- 基础查询 -->
+    <select id="selectById" resultMap="EntityResultMap">
         SELECT * FROM exchange_apply WHERE id = #{id}
     </select>
 
+    <!-- 详情（含完整关联信息，修复原 selectById 缺 JOIN 的问题） -->
+    <select id="selectVOById" resultMap="VOResultMap">
+        SELECT e.*,
+               au.username AS apply_username, au.avatar AS apply_user_avatar, au.student_no AS apply_student_no,
+               ou.username AS owner_username,
+               i.item_name, i.images AS item_images
+        FROM exchange_apply e
+        INNER JOIN sys_user au ON e.apply_user_id = au.id
+        INNER JOIN idle_item i ON e.item_id = i.id
+        LEFT JOIN sys_user ou ON e.owner_user_id = ou.id
+        WHERE e.id = #{id}
+    </select>
+
     <update id="updateStatus">
-        UPDATE exchange_apply SET apply_status = #{applyStatus} WHERE id = #{id}
+        UPDATE exchange_apply SET apply_status = #{applyStatus}, update_time = NOW() WHERE id = #{id}
     </update>
 
-    <select id="selectAll" resultMap="BaseResultMap">
-        SELECT e.*, u.username AS apply_username, i.item_name
+    <select id="selectAll" resultMap="VOResultMap">
+        SELECT e.*,
+               au.username AS apply_username, au.avatar AS apply_user_avatar, au.student_no AS apply_student_no,
+               ou.username AS owner_username,
+               i.item_name, i.images AS item_images
         FROM exchange_apply e
-        LEFT JOIN sys_user u ON e.apply_user_id = u.id
-        LEFT JOIN idle_item i ON e.item_id = i.id
+        INNER JOIN sys_user au ON e.apply_user_id = au.id
+        INNER JOIN idle_item i ON e.item_id = i.id
+        LEFT JOIN sys_user ou ON e.owner_user_id = ou.id
         ORDER BY e.create_time DESC
+    </select>
+
+    <select id="countAll" resultType="int">
+        SELECT COUNT(*) FROM exchange_apply
     </select>
 
 </mapper>

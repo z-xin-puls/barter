@@ -1,7 +1,8 @@
 package com.barter.service;
 
 import com.barter.dto.ItemAddDTO;
-import com.barter.entity.IdleItem;
+import com.barter.dto.ItemQueryDTO;
+import com.barter.vo.IdleItemVO;
 
 import java.util.List;
 import java.util.Map;
@@ -11,23 +12,15 @@ import java.util.Map;
  */
 public interface IdleItemService {
 
-    /**
-     * 发布闲置物品
-     */
     void add(Long userId, ItemAddDTO dto);
 
-    /**
-     * 分页查询闲置物品
-     */
-    Map<String, Object> page(Integer pageNum, Integer pageSize, Long categoryId);
+    /** 分页搜索 */
+    Map<String, Object> page(ItemQueryDTO query, Long currentUserId);
 
-    /**
-     * 下架闲置物品
-     */
+    /** 物品详情（浏览量+1） */
+    IdleItemVO detail(Long id, Long currentUserId);
+
     void off(Long userId, Long id);
 
-    /**
-     * 查询我的发布
-     */
-    List<IdleItem> myItems(Long userId);
+    List<IdleItemVO> myItems(Long userId);
 }

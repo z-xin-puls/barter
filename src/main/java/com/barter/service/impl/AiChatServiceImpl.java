@@ -1,5 +1,6 @@
 package com.barter.service.impl;
 
+import com.barter.common.BusinessException;
 import com.barter.config.AiConfig;
 import com.barter.entity.AiChatRecord;
 import com.barter.mapper.AiChatRecordMapper;
@@ -28,7 +29,9 @@ public class AiChatServiceImpl implements AiChatService {
     @Autowired
     private AiChatRecordMapper recordMapper;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    @Autowired
+    private RestTemplate restTemplate;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     // 系统提示词（固定，需求文档要求）
@@ -45,7 +48,7 @@ public class AiChatServiceImpl implements AiChatService {
     @Override
     public String chat(Long userId, String content) {
         if (content == null || content.trim().isEmpty()) {
-            throw new RuntimeException("请输入您的问题");
+            throw new BusinessException("请输入您的问题");
         }
 
         String aiContent;
@@ -127,7 +130,7 @@ public class AiChatServiceImpl implements AiChatService {
             }
         }
 
-        throw new RuntimeException("DeepSeek 返回内容为空");
+        throw new BusinessException("DeepSeek 返回内容为空");
     }
 
     // ============ 以下为本地模拟回答（降级模式使用） ============

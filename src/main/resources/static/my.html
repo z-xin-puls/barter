@@ -8,7 +8,7 @@
 </head>
 <body>
 
-<div id="app">
+<div id="app" v-cloak>
     <!-- 导航栏 -->
     <div class="navbar">
         <div class="logo">🎒 校园闲置物品交换平台</div>
@@ -36,7 +36,7 @@
         <!-- ============ 我的发布 ============ -->
         <div class="card" v-if="activeTab === 'myItems'">
             <h3 style="margin-bottom:18px;">📦 我的发布</h3>
-            <table v-if="myItems.length > 0">
+            <table v-if="loaded.myItems && myItems.length > 0">
                 <thead>
                     <tr>
                         <th>物品名称</th>
@@ -44,6 +44,7 @@
                         <th>描述</th>
                         <th>希望交换</th>
                         <th>状态</th>
+                        <th>审核</th>
                         <th>发布时间</th>
                         <th>操作</th>
                     </tr>
@@ -59,15 +60,20 @@
                                 {{ ITEM_STATUS_MAP[item.status] || '未知' }}
                             </span>
                         </td>
+                        <td>
+                            <span v-if="item.auditStatus === 0" class="tag tag-warn">待审核</span>
+                            <span v-else-if="item.auditStatus === 1" class="tag tag-success">已通过</span>
+                            <span v-else class="tag tag-danger">已驳回</span>
+                        </td>
                         <td>{{ formatDate(item.createTime) }}</td>
                         <td>
-                            <button class="btn btn-danger btn-sm" v-if="item.status === 1" @click="offItem(item.id)">下架</button>
+                            <button class="btn btn-danger btn-sm" v-if="item.status === 1 && item.auditStatus === 1" @click="offItem(item.id)">下架</button>
                             <span v-else style="color:#aaa;">-</span>
                         </td>
                     </tr>
                 </tbody>
             </table>
-            <div v-else class="empty">
+            <div v-else-if="loaded.myItems" class="empty">
                 <div class="empty-icon">📦</div>
                 <div>还没发布过闲置物品呢~</div>
                 <a href="publish.html" class="btn btn-primary" style="margin-top:16px;">去发布第一件</a>
@@ -77,7 +83,7 @@
         <!-- ============ 我收到的申请（待处理） ============ -->
         <div class="card" v-if="activeTab === 'received'">
             <h3 style="margin-bottom:18px;">📬 我收到的申请（可处理）</h3>
-            <table v-if="receivedApplies.length > 0">
+            <table v-if="loaded.received && receivedApplies.length > 0">
                 <thead>
                     <tr>
                         <th>申请人</th>
@@ -95,7 +101,7 @@
                         <td style="max-width:200px;">{{ a.message || '-' }}</td>
                         <td>{{ formatDate(a.createTime) }}</td>
                         <td>
-                            <span class="tag" :class="a.applyStatus === 0 ? 'tag-warn' : (a.applyStatus === 1 ? 'tag-success' : 'tag-danger')">
+                            <span class="tag" :class="a.applyStatus === 0 ? 'tag-warn' : ((a.applyStatus === 1 || a.applyStatus === 3) ? 'tag-success' : 'tag-danger')">
                                 {{ STATUS_MAP[a.applyStatus] || '未知' }}
                             </span>
                         </td>
@@ -107,7 +113,7 @@
                     </tr>
                 </tbody>
             </table>
-            <div v-else class="empty">
+            <div v-else-if="loaded.received" class="empty">
                 <div class="empty-icon">📭</div>
                 <div>还没有收到申请~</div>
             </div>
@@ -116,13 +122,14 @@
         <!-- ============ 我发起的申请 ============ -->
         <div class="card" v-if="activeTab === 'myApply'">
             <h3 style="margin-bottom:18px;">✈️ 我发起的申请</h3>
-            <table v-if="myApplies.length > 0">
+            <table v-if="loaded.myApply && myApplies.length > 0">
                 <thead>
                     <tr>
                         <th>目标物品</th>
                         <th>留言</th>
                         <th>申请时间</th>
                         <th>状态</th>
+                        <th>操作</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -131,24 +138,53 @@
                         <td style="max-width:250px;">{{ a.message || '-' }}</td>
                         <td>{{ formatDate(a.createTime) }}</td>
                         <td>
-                            <span class="tag" :class="a.applyStatus === 0 ? 'tag-warn' : (a.applyStatus === 1 ? 'tag-success' : 'tag-danger')">
+                            <span class="tag" :class="a.applyStatus === 0 ? 'tag-warn' : ((a.applyStatus === 1 || a.applyStatus === 3) ? 'tag-success' : 'tag-danger')">
                                 {{ STATUS_MAP[a.applyStatus] || '未知' }}
                             </span>
+                        </td>
+                        <td>
+                            <button v-if="a.applyStatus === 1" class="btn btn-primary btn-sm" @click="confirmExchange(a.id)">确认完成交换</button>
+                            <span v-else style="color:#aaa;">-</span>
                         </td>
                     </tr>
                 </tbody>
             </table>
-            <div v-else class="empty">
+            <div v-else-if="loaded.myApply" class="empty">
                 <div class="empty-icon">📭</div>
                 <div>还没发起过交换申请~</div>
                 <a href="index.html" class="btn btn-primary" style="margin-top:16px;">去首页看看</a>
             </div>
         </div>
 
+        <!-- ============ 我的收藏 ============ -->
+        <div class="card" v-if="activeTab === 'favorites'">
+            <h3 style="margin-bottom:18px;">⭐ 我的收藏</h3>
+            <div v-if="loaded.favorites && favorites.length > 0" class="items-grid">
+                <a v-for="item in favorites" :key="item.id" href="index.html" class="item-card"
+                   style="text-decoration:none; color:inherit; display:block;">
+                    <h3>{{ item.itemName }}</h3>
+                    <div class="tag">{{ item.categoryName }}</div>
+                    <div class="desc">{{ item.itemDesc || '暂无描述' }}</div>
+                    <div class="meta">
+                        <span>✨ 成色：{{ item.itemCondition || '未填写' }}</span>
+                        <span>🏫 {{ item.campus || '未填写' }}</span>
+                    </div>
+                    <div class="meta">
+                        <span>👀 浏览 {{ item.viewCount || 0 }}</span>
+                    </div>
+                </a>
+            </div>
+            <div v-else-if="loaded.favorites" class="empty">
+                <div class="empty-icon">⭐</div>
+                <div>还没有收藏任何物品</div>
+                <a href="index.html" class="btn btn-primary" style="margin-top:16px;">去首页逛逛</a>
+            </div>
+        </div>
+
         <!-- ============ AI 历史对话 ============ -->
         <div class="card" v-if="activeTab === 'aiHistory'">
             <h3 style="margin-bottom:18px;">🤖 AI 助手对话历史</h3>
-            <div v-if="aiHistory.length > 0">
+            <div v-if="loaded.aiHistory && aiHistory.length > 0">
                 <div v-for="(record, idx) in aiHistory" :key="idx" style="margin-bottom:16px; border-bottom:1px solid #f0f0f0; padding-bottom:16px;">
                     <div style="color:#666; font-size:14px; margin-bottom:6px;">
                         <strong>👤 我：</strong>{{ record.userContent }}
@@ -159,7 +195,7 @@
                     </div>
                 </div>
             </div>
-            <div v-else class="empty">
+            <div v-else-if="loaded.aiHistory" class="empty">
                 <div class="empty-icon">💬</div>
                 <div>还没有和 AI 助手聊过天~</div>
                 <button class="btn btn-primary" style="margin-top:16px;" @click="openAI = true">试试 AI 助手</button>
@@ -190,7 +226,7 @@
     </div>
 </div>
 
-<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="js/vue.global.js"></script>
 <script src="js/common.js"></script>
 <script>
     const { createApp, ref, onMounted, nextTick } = Vue;
@@ -203,16 +239,21 @@
                 { key: 'myItems', label: '📦 我的发布' },
                 { key: 'received', label: '📬 收到的申请' },
                 { key: 'myApply', label: '✈️ 发起的申请' },
+                { key: 'favorites', label: '⭐ 我的收藏' },
                 { key: 'aiHistory', label: '🤖 AI 对话历史' }
             ];
 
             const myItems = ref([]);
             const receivedApplies = ref([]);
             const myApplies = ref([]);
+            const favorites = ref([]);
             const aiHistory = ref([]);
 
+            // 各 tab 数据是否已加载完成，用于避免空状态闪烁
+            const loaded = ref({ myItems: false, received: false, myApply: false, favorites: false, aiHistory: false });
+
             const ITEM_STATUS_MAP = { 1: '上架中', 2: '已交换完成', 3: '已下架' };
-            const STATUS_MAP = { 0: '待处理', 1: '已同意', 2: '已拒绝' };
+            const STATUS_MAP = { 0: '待处理', 1: '已同意', 2: '已拒绝', 3: '已完成' };
 
             // AI 相关
             const openAI = ref(false);
@@ -225,28 +266,50 @@
                 try {
                     const res = await httpGet('/api/item/my');
                     myItems.value = res.data;
-                } catch (e) {}
+                } catch (e) {
+                } finally {
+                    loaded.value.myItems = true;
+                }
             };
 
             const loadReceived = async () => {
                 try {
                     const res = await httpGet('/api/exchange/received');
                     receivedApplies.value = res.data;
-                } catch (e) {}
+                } catch (e) {
+                } finally {
+                    loaded.value.received = true;
+                }
             };
 
             const loadMyApply = async () => {
                 try {
                     const res = await httpGet('/api/exchange/my');
                     myApplies.value = res.data;
-                } catch (e) {}
+                } catch (e) {
+                } finally {
+                    loaded.value.myApply = true;
+                }
+            };
+
+            const loadFavorites = async () => {
+                try {
+                    const res = await httpGet('/api/favorite/my');
+                    favorites.value = res.data;
+                } catch (e) {
+                } finally {
+                    loaded.value.favorites = true;
+                }
             };
 
             const loadAiHistory = async () => {
                 try {
                     const res = await httpGet('/api/ai/record/list');
                     aiHistory.value = res.data;
-                } catch (e) {}
+                } catch (e) {
+                } finally {
+                    loaded.value.aiHistory = true;
+                }
             };
 
             const offItem = async (id) => {
@@ -266,6 +329,16 @@
                     showToast('处理成功', 'success');
                     loadReceived();
                     loadMyItems(); // 刷新物品状态
+                } catch (e) {}
+            };
+
+            const confirmExchange = async (id) => {
+                if (!confirm('确定已完成本次交换吗？')) return;
+                try {
+                    await httpPut('/api/exchange/confirm/' + id);
+                    showToast('交换已确认完成', 'success');
+                    loadMyApply();
+                    loadReceived();
                 } catch (e) {}
             };
 
@@ -306,15 +379,16 @@
                 loadMyItems();
                 loadReceived();
                 loadMyApply();
+                loadFavorites();
                 loadAiHistory();
             });
 
             return {
                 user, activeTab, tabs,
-                myItems, receivedApplies, myApplies, aiHistory,
+                myItems, receivedApplies, myApplies, favorites, aiHistory, loaded,
                 ITEM_STATUS_MAP, STATUS_MAP,
                 openAI, aiInput, aiLoading, aiMessages, aiMessagesRef,
-                loadMyItems, offItem, handleApply, sendAI,
+                loadMyItems, offItem, handleApply, confirmExchange, loadFavorites, sendAI,
                 logout, formatDate
             };
         }

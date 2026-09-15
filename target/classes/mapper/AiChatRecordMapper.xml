@@ -8,6 +8,7 @@
         <result column="user_content" property="userContent"/>
         <result column="ai_content" property="aiContent"/>
         <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
     </resultMap>
 
     <insert id="insert" parameterType="com.barter.entity.AiChatRecord" useGeneratedKeys="true" keyProperty="id">

@@ -1,18 +1,27 @@
 server:
-  port: 8080
+  port: 8081
 
 spring:
   application:
     name: barter-platform
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/barter_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
-    username: root
-    password: root
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:barter_db}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
   # 静态资源（前端页面）
   web:
     resources:
       static-locations: classpath:/static/
+  # 文件上传限制
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 10MB
+
+# 文件上传存储路径（可通过环境变量覆盖）
+upload:
+  path: ${UPLOAD_PATH:./uploads}
 
 # MyBatis 配置
 mybatis:
@@ -21,15 +30,17 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
 
+# JWT 配置（密钥通过环境变量注入，不要硬编码）
+jwt:
+  secret: ${JWT_SECRET:barter-platform-default-jwt-secret-key-please-change-in-production-2024}
+  expire: 86400000
+
 # AI 助手配置
-# 1. enable: true=真实调用 DeepSeek V4 Flash 大模型  false=返回本地模拟回答（降级）
-# 2. deepseek.api-key: 到 DeepSeek 开放平台申请 API Key
-#    申请地址: https://platform.deepseek.com/api_keys
-# 3. deepseek.model: deepseek-v4-flash（快+便宜）或 deepseek-v4-pro（强+稍贵）
-# 4. deepseek.base-url: DeepSeek 官方 API 地址
+# 1. enable: true=真实调用 DeepSeek 大模型  false=返回本地模拟回答（降级）
+# 2. deepseek.api-key: 通过环境变量 DEEPSEEK_API_KEY 注入
 ai:
-  enable: true
+  enable: ${AI_ENABLED:true}
   deepseek:
-    base-url: https://api.deepseek.com
-    api-key: sk-dbfbe8ca16b341ba9359ba494ad89a76
-    model: deepseek-v4-flash
+    base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+    api-key: ${DEEPSEEK_API_KEY:}
+    model: ${DEEPSEEK_MODEL:deepseek-chat}

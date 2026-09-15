@@ -57,11 +57,20 @@
         .modal h3 { margin: 0 0 16px; font-size: 16px; }
         .modal input { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 4px; margin-bottom: 16px; box-sizing: border-box; }
         .modal .actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+        /* 物品详情弹窗 */
+        .detail-mask { position: fixed; inset: 0; background: rgba(0,0,0,.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .detail-modal { background: #fff; border-radius: 8px; padding: 24px; width: 560px; max-height: 85vh; overflow-y: auto; }
+        .detail-modal h2 { margin: 0 0 12px; font-size: 20px; }
+        .detail-modal .detail-row { margin-bottom: 10px; font-size: 14px; color: #374151; }
+        .detail-modal .detail-row .label { color: #6b7280; margin-right: 6px; }
+        .detail-modal .detail-images { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+        .detail-modal .detail-images img { width: 120px; height: 120px; object-fit: cover; border-radius: 6px; border: 1px solid #e5e7eb; }
     </style>
 </head>
 <body>
 
-<div id="app" class="admin-layout">
+<div id="app" v-cloak class="admin-layout">
     <!-- 侧边栏 -->
     <div class="sidebar">
         <h2>🛠 管理后台</h2>
@@ -69,7 +78,8 @@
         <div class="menu-item" :class="{active: tab==='user'}" @click="switchTab('user')">👥 用户管理</div>
         <div class="menu-item" :class="{active: tab==='item'}" @click="switchTab('item')">📦 物品管理</div>
         <div class="menu-item" :class="{active: tab==='apply'}" @click="switchTab('apply')">🔄 申请管理</div>
-        <div class="menu-item logout" @click="logout()">🚪 退出登录</div>
+        <div class="menu-item" :class="{active: tab==='report'}" @click="switchTab('report')">🚨 举报管理</div>
+        <div class="menu-item logout" @click="adminLogout()">🚪 退出登录</div>
     </div>
 
     <!-- 主内容 -->
@@ -91,8 +101,8 @@
                     <div class="value">{{ stats.itemCount }}</div>
                 </div>
                 <div class="stat-card orange">
-                    <div class="label">物品总数（含下架）</div>
-                    <div class="value">{{ stats.totalItemCount }}</div>
+                    <div class="label">待审核物品</div>
+                    <div class="value">{{ stats.pendingAuditCount }}</div>
                 </div>
                 <div class="stat-card purple">
                     <div class="label">交换申请总数</div>
@@ -104,10 +114,10 @@
         <!-- 用户管理 -->
         <template v-if="tab === 'user'">
             <div class="content-card">
-                <table v-if="users.length">
+                <table v-if="loaded.user && users.length">
                     <thead>
                     <tr>
-                        <th>ID</th><th>账号</th><th>姓名</th><th>手机号</th><th>角色</th><th>注册时间</th><th>操作</th>
+                        <th>ID</th><th>账号</th><th>姓名</th><th>手机号</th><th>学号</th><th>院系</th><th>状态</th><th>注册时间</th><th>操作</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -116,29 +126,32 @@
                         <td>{{ u.username }}</td>
                         <td>{{ u.realName || '-' }}</td>
                         <td>{{ u.phone || '-' }}</td>
+                        <td>{{ u.studentNo || '-' }}</td>
+                        <td>{{ u.department || '-' }}</td>
                         <td>
-                            <span v-if="u.role === 1" class="badge badge-orange">管理员</span>
-                            <span v-else class="badge badge-blue">普通用户</span>
+                            <span v-if="u.status === 1" class="badge badge-green">正常</span>
+                            <span v-else class="badge badge-red">已封禁</span>
                         </td>
                         <td>{{ formatDate(u.createTime) }}</td>
                         <td>
                             <button class="btn-sm btn-success" @click="openResetPwd(u)">重置密码</button>
-                            <button class="btn-sm btn-danger" @click="deleteUser(u)" :disabled="u.role === 1" :title="u.role===1?'不能删除管理员':'删除用户'">删除</button>
+                            <button class="btn-sm btn-danger" @click="deleteUser(u)">删除</button>
+                            <button class="btn-sm" :class="u.status===0?'btn-success':'btn-gray'" @click="toggleUserStatus(u)">{{ u.status===0 ? '解封' : '封禁' }}</button>
                         </td>
                     </tr>
                     </tbody>
                 </table>
-                <div v-else class="empty">暂无用户</div>
+                <div v-else-if="loaded.user" class="empty">暂无用户</div>
             </div>
         </template>
 
         <!-- 物品管理 -->
         <template v-if="tab === 'item'">
             <div class="content-card">
-                <table v-if="items.length">
+                <table v-if="loaded.item && items.length">
                     <thead>
                     <tr>
-                        <th>ID</th><th>物品名称</th><th>分类</th><th>发布者</th><th>状态</th><th>发布时间</th><th>操作</th>
+                        <th>ID</th><th>物品名称</th><th>分类</th><th>发布者</th><th>状态</th><th>审核</th><th>发布时间</th><th>操作</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -152,8 +165,18 @@
                             <span v-else-if="it.status === 2" class="badge badge-orange">已交换</span>
                             <span v-else class="badge badge-gray">已下架</span>
                         </td>
+                        <td>
+                            <span v-if="it.auditStatus === 0" class="badge badge-orange">待审核</span>
+                            <span v-else-if="it.auditStatus === 1" class="badge badge-green">已通过</span>
+                            <span v-else class="badge badge-red">已驳回</span>
+                        </td>
                         <td>{{ formatDate(it.createTime) }}</td>
                         <td>
+                            <button class="btn-sm" style="background:#3b82f6;color:#fff;" @click="showItemDetail(it)">详情</button>
+                            <template v-if="it.auditStatus === 0">
+                                <button class="btn-sm btn-success" @click="auditItem(it, 1)">通过</button>
+                                <button class="btn-sm btn-danger" @click="auditItem(it, 2)">驳回</button>
+                            </template>
                             <button v-if="it.status === 1" class="btn-sm btn-gray" @click="updateItemStatus(it, 3)">下架</button>
                             <button v-else-if="it.status === 3" class="btn-sm btn-success" @click="updateItemStatus(it, 1)">上架</button>
                             <button class="btn-sm btn-danger" @click="deleteItem(it)">删除</button>
@@ -161,14 +184,14 @@
                     </tr>
                     </tbody>
                 </table>
-                <div v-else class="empty">暂无物品</div>
+                <div v-else-if="loaded.item" class="empty">暂无物品</div>
             </div>
         </template>
 
         <!-- 申请管理 -->
         <template v-if="tab === 'apply'">
             <div class="content-card">
-                <table v-if="applies.length">
+                <table v-if="loaded.apply && applies.length">
                     <thead>
                     <tr>
                         <th>ID</th><th>申请人</th><th>目标物品</th><th>留言</th><th>状态</th><th>申请时间</th>
@@ -183,13 +206,50 @@
                         <td>
                             <span v-if="a.applyStatus === 0" class="badge badge-orange">待处理</span>
                             <span v-else-if="a.applyStatus === 1" class="badge badge-green">已同意</span>
-                            <span v-else class="badge badge-gray">已拒绝</span>
+                            <span v-else-if="a.applyStatus === 2" class="badge badge-red">已拒绝</span>
+                            <span v-else-if="a.applyStatus === 3" class="badge badge-blue">已完成</span>
                         </td>
                         <td>{{ formatDate(a.createTime) }}</td>
                     </tr>
                     </tbody>
                 </table>
-                <div v-else class="empty">暂无申请记录</div>
+                <div v-else-if="loaded.apply" class="empty">暂无申请记录</div>
+            </div>
+        </template>
+
+        <!-- 举报管理 -->
+        <template v-if="tab === 'report'">
+            <div class="content-card">
+                <table v-if="loaded.report && reports.length">
+                    <thead>
+                    <tr>
+                        <th>ID</th><th>举报人ID</th><th>类型</th><th>目标ID</th><th>原因</th><th>描述</th><th>状态</th><th>操作</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr v-for="r in reports" :key="r.id">
+                        <td>{{ r.id }}</td>
+                        <td>{{ r.reporterId }}</td>
+                        <td>{{ r.targetType }}</td>
+                        <td>{{ r.targetId }}</td>
+                        <td>{{ r.reason || '-' }}</td>
+                        <td>{{ r.description || '-' }}</td>
+                        <td>
+                            <span v-if="r.status === 0" class="badge badge-orange">待处理</span>
+                            <span v-else-if="r.status === 1" class="badge badge-green">已处理</span>
+                            <span v-else class="badge badge-gray">已驳回</span>
+                        </td>
+                        <td>
+                            <template v-if="r.status === 0">
+                                <button class="btn-sm btn-success" @click="handleReport(r, 1)">处理</button>
+                                <button class="btn-sm btn-gray" @click="handleReport(r, 2)">驳回</button>
+                            </template>
+                            <span v-else>-</span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <div v-else-if="loaded.report" class="empty">暂无举报记录</div>
             </div>
         </template>
 
@@ -204,10 +264,51 @@
                 </div>
             </div>
         </div>
+        <!-- 物品详情弹窗 -->
+        <div v-if="detailItem" class="detail-mask" @click.self="detailItem = null">
+            <div class="detail-modal">
+                <h2>{{ detailItem.itemName }}</h2>
+                <div v-if="detailItem.images" class="detail-images">
+                    <img v-for="(img, idx) in getAllImages(detailItem.images)" :key="idx" :src="img"
+                         onerror="this.style.display='none'">
+                </div>
+                <div class="detail-row"><span class="label">分类：</span>{{ detailItem.categoryName || '-' }}</div>
+                <div class="detail-row"><span class="label">成色：</span>{{ detailItem.itemCondition || '-' }}</div>
+                <div class="detail-row"><span class="label">校区/地点：</span>{{ detailItem.campus || '-' }}</div>
+                <div class="detail-row"><span class="label">希望交换：</span>{{ detailItem.hopeExchange || '-' }}</div>
+                <div class="detail-row"><span class="label">物品描述：</span>{{ detailItem.itemDesc || '暂无描述' }}</div>
+                <div class="detail-row"><span class="label">发布者：</span>{{ detailItem.username || '-' }}
+                    <span v-if="detailItem.studentNo">（学号：{{ detailItem.studentNo }}）</span>
+                    <span v-if="detailItem.department"> {{ detailItem.department }}</span>
+                </div>
+                <div class="detail-row"><span class="label">浏览量：</span>{{ detailItem.viewCount || 0 }}</div>
+                <div class="detail-row"><span class="label">发布时间：</span>{{ formatDate(detailItem.createTime) }}</div>
+                <div class="detail-row">
+                    <span class="label">上架状态：</span>
+                    <span v-if="detailItem.status === 1" class="badge badge-green">上架中</span>
+                    <span v-else-if="detailItem.status === 2" class="badge badge-orange">已交换</span>
+                    <span v-else class="badge badge-gray">已下架</span>
+                </div>
+                <div class="detail-row">
+                    <span class="label">审核状态：</span>
+                    <span v-if="detailItem.auditStatus === 0" class="badge badge-orange">待审核</span>
+                    <span v-else-if="detailItem.auditStatus === 1" class="badge badge-green">已通过</span>
+                    <span v-else class="badge badge-red">已驳回</span>
+                    <span v-if="detailItem.auditRemark" style="margin-left:8px;color:#991b1b;">备注：{{ detailItem.auditRemark }}</span>
+                </div>
+                <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;border-top:1px solid #f0f0f0;padding-top:16px;">
+                    <template v-if="detailItem.auditStatus === 0">
+                        <button class="btn-sm btn-success" @click="auditFromDetail(1)">通过审核</button>
+                        <button class="btn-sm btn-danger" @click="auditFromDetail(2)">驳回</button>
+                    </template>
+                    <button class="btn-sm btn-gray" @click="detailItem = null">关闭</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="js/vue.global.js"></script>
 <script src="js/common.js"></script>
 <script>
     const { createApp, ref, computed, onMounted } = Vue;
@@ -217,20 +318,26 @@
             const tab = ref('stats');
             const userInfo = ref(getUserInfo());
 
-            const stats = ref({ userCount: 0, itemCount: 0, totalItemCount: 0, applyCount: 0 });
+            const stats = ref({ userCount: 0, itemCount: 0, totalItemCount: 0, applyCount: 0, pendingAuditCount: 0 });
             const users = ref([]);
             const items = ref([]);
             const applies = ref([]);
+            const reports = ref([]);
+
+            // 各 tab 数据是否已加载完成，用于避免空状态闪烁
+            const loaded = ref({ stats: false, user: false, item: false, apply: false, report: false });
 
             const showResetPwd = ref(false);
             const resetPwdUser = ref(null);
             const newPassword = ref('');
+            const detailItem = ref(null);
 
             const tabTitle = computed(() => ({
                 stats: '📊 数据概览',
                 user: '👥 用户管理',
                 item: '📦 物品管理',
                 apply: '🔄 申请管理',
+                report: '🚨 举报管理',
             }[tab.value] || ''));
 
             const switchTab = (t) => {
@@ -252,8 +359,14 @@
                     } else if (tab.value === 'apply') {
                         const res = await httpGet('/api/admin/apply/list');
                         applies.value = res.data;
+                    } else if (tab.value === 'report') {
+                        const res = await httpGet('/api/admin/report/list');
+                        reports.value = res.data;
                     }
-                } catch (e) {}
+                } catch (e) {
+                } finally {
+                    loaded.value[tab.value] = true;
+                }
             };
 
             const openResetPwd = (u) => {
@@ -274,11 +387,56 @@
             };
 
             const deleteUser = async (u) => {
-                if (u.role === 1) { showToast('不能删除管理员', 'error'); return; }
                 if (!confirm(`确定删除用户「${u.username}」吗？`)) return;
                 try {
-                    await fetch('/api/admin/user/delete/' + u.id, { method: 'DELETE', headers: { 'token': getToken() } });
+                    await httpDelete('/api/admin/user/delete/' + u.id);
                     showToast('删除成功', 'success');
+                    loadData();
+                } catch (e) {}
+            };
+
+            const toggleUserStatus = async (u) => {
+                const action = u.status === 0 ? '解封' : '封禁';
+                if (!confirm(`确定${action}用户「${u.username}」吗？`)) return;
+                try {
+                    await httpPut('/api/admin/user/status/' + u.id + '/' + (u.status === 0 ? 1 : 0));
+                    showToast(action + '成功', 'success');
+                    loadData();
+                } catch (e) {}
+            };
+
+            // 物品图片解析
+            const getFirstImage = (images) => {
+                if (!images) return '';
+                try { const arr = JSON.parse(images); return arr[0] || ''; } catch(e) { return images.split(',')[0] || ''; }
+            };
+            const getAllImages = (images) => {
+                if (!images) return [];
+                try { return JSON.parse(images); } catch(e) { return images.split(',').filter(s=>s); }
+            };
+
+            // 物品详情弹窗
+            const showItemDetail = async (it) => {
+                try {
+                    // 调用公共详情接口获取完整信息（含发布者学号/院系等）
+                    const res = await httpGet('/api/item/detail/' + it.id);
+                    detailItem.value = res.data;
+                } catch (e) {
+                    // 接口失败时退化为列表数据
+                    detailItem.value = it;
+                }
+            };
+
+            // 从详情弹窗中直接审核
+            const auditFromDetail = async (status) => {
+                const it = detailItem.value;
+                if (!it) return;
+                const tip = status === 1 ? '确定通过该物品的审核吗？' : '确定驳回该物品吗？';
+                if (!confirm(tip)) return;
+                try {
+                    await httpPut('/api/admin/item/audit/' + it.id + '/' + status);
+                    showToast(status === 1 ? '已通过审核' : '已驳回', 'success');
+                    detailItem.value = null;
                     loadData();
                 } catch (e) {}
             };
@@ -294,29 +452,55 @@
             const deleteItem = async (it) => {
                 if (!confirm(`确定删除物品「${it.itemName}」吗？`)) return;
                 try {
-                    await fetch('/api/admin/item/delete/' + it.id, { method: 'DELETE', headers: { 'token': getToken() } });
+                    await httpDelete('/api/admin/item/delete/' + it.id);
                     showToast('删除成功', 'success');
                     loadData();
                 } catch (e) {}
+            };
+
+            const auditItem = async (it, status) => {
+                const tip = status === 1 ? '确定通过该物品的审核吗？' : '确定驳回该物品吗？';
+                if (!confirm(tip)) return;
+                try {
+                    await httpPut('/api/admin/item/audit/' + it.id + '/' + status);
+                    showToast(status === 1 ? '已通过审核' : '已驳回', 'success');
+                    loadData();
+                } catch (e) {}
+            };
+
+            const handleReport = async (r, status) => {
+                try {
+                    await httpPut('/api/admin/report/handle/' + r.id + '/' + status);
+                    showToast('处理成功', 'success');
+                    loadData();
+                } catch (e) {}
+            };
+
+            const adminLogout = () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('userInfo');
+                window.location.href = 'admin-login.html';
             };
 
             onMounted(() => {
                 // 权限检查
                 if (!requireLogin()) return;
                 const info = getUserInfo();
-                if (!info || info.role !== 1) {
+                if (!info || info.userType !== 'admin') {
                     showToast('无权访问管理后台', 'error');
-                    setTimeout(() => window.location.href = 'index.html', 1500);
+                    setTimeout(() => window.location.href = 'admin-login.html', 1500);
                     return;
                 }
                 loadData();
             });
 
             return {
-                tab, userInfo, tabTitle, stats, users, items, applies,
-                showResetPwd, resetPwdUser, newPassword,
-                switchTab, openResetPwd, confirmResetPwd, deleteUser, updateItemStatus, deleteItem,
-                formatDate, logout
+                tab, userInfo, tabTitle, stats, users, items, applies, reports, loaded,
+                showResetPwd, resetPwdUser, newPassword, detailItem,
+                switchTab, openResetPwd, confirmResetPwd, deleteUser, toggleUserStatus,
+                updateItemStatus, deleteItem, auditItem, handleReport,
+                showItemDetail, auditFromDetail, getFirstImage, getAllImages,
+                formatDate, adminLogout
             };
         }
     }).mount('#app');

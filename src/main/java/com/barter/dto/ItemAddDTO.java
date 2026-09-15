@@ -11,4 +11,10 @@ public class ItemAddDTO {
     private String itemName;
     private String itemDesc;
     private String hopeExchange;
+    /** 图片（JSON数组字符串） */
+    private String images;
+    /** 成色 */
+    private String itemCondition;
+    /** 校区/交易地点 */
+    private String campus;
 }

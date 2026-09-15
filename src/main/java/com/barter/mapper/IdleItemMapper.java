@@ -1,6 +1,7 @@
 package com.barter.mapper;
 
 import com.barter.entity.IdleItem;
+import com.barter.vo.IdleItemVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -14,33 +15,48 @@ public interface IdleItemMapper {
 
     int insert(IdleItem item);
 
+    /** 详情（含关联信息） */
+    IdleItemVO selectVOById(@Param("id") Long id, @Param("currentUserId") Long currentUserId);
+
+    /** 基础查询（无JOIN，内部校验用） */
     IdleItem selectById(Long id);
 
-    /**
-     * 分页查询
-     */
-    List<IdleItem> selectPage(@Param("categoryId") Long categoryId,
-                              @Param("offset") Integer offset,
-                              @Param("pageSize") Integer pageSize);
+    /** 分页查询（含搜索/筛选） */
+    List<IdleItemVO> selectPage(@Param("categoryId") Long categoryId,
+                                @Param("keyword") String keyword,
+                                @Param("itemCondition") String itemCondition,
+                                @Param("campus") String campus,
+                                @Param("offset") Integer offset,
+                                @Param("pageSize") Integer pageSize,
+                                @Param("currentUserId") Long currentUserId);
 
-    /**
-     * 查询总数
-     */
-    int selectCount(@Param("categoryId") Long categoryId);
+    int selectCount(@Param("categoryId") Long categoryId,
+                    @Param("keyword") String keyword,
+                    @Param("itemCondition") String itemCondition,
+                    @Param("campus") String campus);
 
-    /**
-     * 下架物品
-     */
     int updateStatus(@Param("id") Long id, @Param("status") Integer status);
 
-    /**
-     * 查询我的发布
-     */
-    List<IdleItem> selectByUserId(@Param("userId") Long userId);
+    /** 更新审核状态：status 1通过 2驳回 */
+    int updateAuditStatus(@Param("id") Long id, @Param("auditStatus") Integer auditStatus,
+                          @Param("auditRemark") String auditRemark);
 
-    /** 管理员：查询全部物品（含下架） */
-    List<IdleItem> selectAll();
+    /** 统计上架物品数 */
+    int countByStatus(@Param("status") Integer status);
 
-    /** 管理员：删除物品 */
+    /** 按审核状态统计 */
+    int countByAuditStatus(@Param("auditStatus") Integer auditStatus);
+
+    /** 浏览量+1 */
+    int incrementViewCount(Long id);
+
+    List<IdleItemVO> selectByUserId(@Param("userId") Long userId);
+
+    /** 管理后台：全部物品 */
+    List<IdleItemVO> selectAll();
+
+    /** 统计物品总数 */
+    int countAll();
+
     int deleteById(Long id);
 }

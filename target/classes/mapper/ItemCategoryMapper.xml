@@ -5,11 +5,18 @@
     <resultMap id="BaseResultMap" type="com.barter.entity.ItemCategory">
         <id column="id" property="id"/>
         <result column="category_name" property="categoryName"/>
+        <result column="icon" property="icon"/>
+        <result column="parent_id" property="parentId"/>
         <result column="sort" property="sort"/>
     </resultMap>
 
     <select id="selectAll" resultMap="BaseResultMap">
         SELECT * FROM item_category ORDER BY sort ASC
     </select>
+
+    <insert id="insert" parameterType="com.barter.entity.ItemCategory" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO item_category (category_name, icon, parent_id, sort)
+        VALUES (#{categoryName}, #{icon}, #{parentId}, #{sort})
+    </insert>
 
 </mapper>

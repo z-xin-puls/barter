@@ -12,4 +12,6 @@ import java.util.List;
 public interface ItemCategoryMapper {
 
     List<ItemCategory> selectAll();
+
+    int insert(ItemCategory category);
 }

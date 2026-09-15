@@ -8,7 +8,7 @@
 </head>
 <body>
 
-<div id="app">
+<div id="app" v-cloak>
     <!-- 导航栏 -->
     <div class="navbar">
         <div class="logo">🎒 校园闲置物品交换平台</div>
@@ -38,13 +38,45 @@
             </div>
 
             <div class="form-group">
-                <label>物品描述（成色、使用情况等）</label>
+                <label>物品描述（使用情况等）</label>
                 <textarea v-model="form.itemDesc" placeholder="例如：九成新，无笔记，适合大一新生使用"></textarea>
             </div>
 
             <div class="form-group">
                 <label>希望交换什么物品</label>
                 <input type="text" v-model="form.hopeExchange" placeholder="例如：大学物理教材">
+            </div>
+
+            <div class="form-group">
+                <label>物品成色</label>
+                <select v-model="form.itemCondition">
+                    <option value="">请选择成色</option>
+                    <option value="全新">全新</option>
+                    <option value="轻微使用">轻微使用</option>
+                    <option value="明显使用">明显使用</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>校区/地点</label>
+                <input type="text" v-model="form.campus" placeholder="例如：主校区/东校区">
+            </div>
+
+            <div class="form-group">
+                <label>物品图片（最多5张）</label>
+                <input type="file" accept="image/*" multiple @change="handleFileSelect" ref="fileInput"
+                       style="display:none;">
+                <button type="button" class="btn btn-secondary" @click="$refs.fileInput.click()">选择图片</button>
+                <div v-if="uploading" style="color:#888;font-size:13px;margin-top:6px;">上传中...</div>
+                <div v-if="imageList.length" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;">
+                    <div v-for="(img, idx) in imageList" :key="idx" style="position:relative;">
+                        <img :src="img" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #eee;">
+                        <button type="button" @click="removeImage(idx)"
+                                style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;
+                                       background:#ef4444;color:#fff;border:none;cursor:pointer;font-size:12px;line-height:1;">×</button>
+                    </div>
+                </div>
+                <div v-else style="color:#aaa;font-size:12px;margin-top:6px;">支持 jpg/png/gif/webp，单张不超过 5MB</div>
             </div>
 
             <div style="display:flex;gap:12px;">
@@ -79,7 +111,7 @@
     </div>
 </div>
 
-<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="js/vue.global.js"></script>
 <script src="js/common.js"></script>
 <script>
     const { createApp, ref, onMounted, nextTick } = Vue;
@@ -94,8 +126,15 @@
                 categoryId: null,
                 itemName: '',
                 itemDesc: '',
-                hopeExchange: ''
+                hopeExchange: '',
+                itemCondition: '',
+                campus: '',
+                images: ''
             });
+
+            // 图片上传相关
+            const imageList = ref([]);   // 已上传图片的 URL 列表
+            const uploading = ref(false);
 
             // AI 相关
             const openAI = ref(false);
@@ -111,6 +150,39 @@
                 } catch (e) {}
             };
 
+            // 选择图片并逐个上传
+            const handleFileSelect = async (e) => {
+                const files = Array.from(e.target.files || []);
+                if (!files.length) return;
+                // 限制最多 5 张
+                const remaining = 5 - imageList.value.length;
+                if (remaining <= 0) {
+                    showToast('最多只能上传 5 张图片', 'error');
+                    e.target.value = '';
+                    return;
+                }
+                const toUpload = files.slice(0, remaining);
+                uploading.value = true;
+                try {
+                    for (const file of toUpload) {
+                        const res = await uploadFile('/api/upload/image', file);
+                        imageList.value.push(res.data);
+                    }
+                    if (files.length > remaining) {
+                        showToast(`已上传 ${remaining} 张，超出部分已忽略`, 'info');
+                    }
+                } catch (e) {
+                    // 上传失败的提示已在 uploadFile 中处理
+                } finally {
+                    uploading.value = false;
+                    e.target.value = '';
+                }
+            };
+
+            const removeImage = (idx) => {
+                imageList.value.splice(idx, 1);
+            };
+
             const handleSubmit = async () => {
                 if (!form.value.categoryId) {
                     showToast('请选择分类', 'error');
@@ -120,13 +192,19 @@
                     showToast('请填写物品名称', 'error');
                     return;
                 }
+                if (uploading.value) {
+                    showToast('图片上传中，请稍候', 'error');
+                    return;
+                }
+                // 把已上传的图片 URL 用逗号拼接提交
+                form.value.images = imageList.value.join(',');
                 loading.value = true;
                 try {
                     await httpPost('/api/item/add', form.value);
-                    showToast('发布成功！', 'success');
+                    showToast('发布成功，等待管理员审核！', 'success');
                     setTimeout(() => {
                         window.location.href = 'index.html';
-                    }, 1000);
+                    }, 1500);
                 } catch (e) {
                     // 错误已拦截
                 } finally {
@@ -139,8 +217,12 @@
                     categoryId: null,
                     itemName: '',
                     itemDesc: '',
-                    hopeExchange: ''
+                    hopeExchange: '',
+                    itemCondition: '',
+                    campus: '',
+                    images: ''
                 };
+                imageList.value = [];
             };
 
             const sendAI = async () => {
@@ -180,7 +262,9 @@
 
             return {
                 user, categories, form, loading,
+                imageList, uploading,
                 openAI, aiInput, aiLoading, aiMessages, aiMessagesRef,
+                handleFileSelect, removeImage,
                 handleSubmit, resetForm, sendAI, logout
             };
         }

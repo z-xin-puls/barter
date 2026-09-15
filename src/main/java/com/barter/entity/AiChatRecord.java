@@ -14,4 +14,5 @@ public class AiChatRecord {
     private String userContent;
     private String aiContent;
     private LocalDateTime createTime;
+    private LocalDateTime updateTime;
 }

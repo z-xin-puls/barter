@@ -2,40 +2,102 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.barter.mapper.IdleItemMapper">
 
-    <resultMap id="BaseResultMap" type="com.barter.entity.IdleItem">
+    <!-- 纯实体映射 -->
+    <resultMap id="EntityResultMap" type="com.barter.entity.IdleItem">
         <id column="id" property="id"/>
         <result column="user_id" property="userId"/>
         <result column="category_id" property="categoryId"/>
         <result column="item_name" property="itemName"/>
         <result column="item_desc" property="itemDesc"/>
         <result column="hope_exchange" property="hopeExchange"/>
+        <result column="images" property="images"/>
+        <result column="item_condition" property="itemCondition"/>
+        <result column="campus" property="campus"/>
+        <result column="view_count" property="viewCount"/>
         <result column="status" property="status"/>
+        <result column="audit_status" property="auditStatus"/>
+        <result column="audit_remark" property="auditRemark"/>
         <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- VO 映射（含关联信息） -->
+    <resultMap id="VOResultMap" type="com.barter.vo.IdleItemVO">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="item_name" property="itemName"/>
+        <result column="item_desc" property="itemDesc"/>
+        <result column="hope_exchange" property="hopeExchange"/>
+        <result column="images" property="images"/>
+        <result column="item_condition" property="itemCondition"/>
+        <result column="campus" property="campus"/>
+        <result column="view_count" property="viewCount"/>
+        <result column="status" property="status"/>
+        <result column="audit_status" property="auditStatus"/>
+        <result column="audit_remark" property="auditRemark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
         <result column="username" property="username"/>
+        <result column="user_avatar" property="userAvatar"/>
+        <result column="student_no" property="studentNo"/>
+        <result column="department" property="department"/>
         <result column="category_name" property="categoryName"/>
+        <result column="favorited" property="favorited"/>
     </resultMap>
 
     <insert id="insert" parameterType="com.barter.entity.IdleItem" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO idle_item (user_id, category_id, item_name, item_desc, hope_exchange, status)
-        VALUES (#{userId}, #{categoryId}, #{itemName}, #{itemDesc}, #{hopeExchange}, #{status})
+        INSERT INTO idle_item (user_id, category_id, item_name, item_desc, hope_exchange,
+                               images, item_condition, campus, view_count, status, audit_status)
+        VALUES (#{userId}, #{categoryId}, #{itemName}, #{itemDesc}, #{hopeExchange},
+                #{images}, #{itemCondition}, #{campus}, 0, #{status}, #{auditStatus})
     </insert>
 
-    <select id="selectById" resultMap="BaseResultMap">
-        SELECT i.*, u.username, c.category_name
+    <!-- 基础查询（无JOIN） -->
+    <select id="selectById" resultMap="EntityResultMap">
+        SELECT * FROM idle_item WHERE id = #{id}
+    </select>
+
+    <!-- 详情（INNER JOIN，外键 NOT NULL） -->
+    <select id="selectVOById" resultMap="VOResultMap">
+        SELECT i.*, u.username, u.avatar AS user_avatar, u.student_no, u.department,
+               c.category_name,
+               <if test="currentUserId != null">
+                   (SELECT COUNT(1) FROM favorite f WHERE f.item_id = i.id AND f.user_id = #{currentUserId}) AS favorited
+               </if>
+               <if test="currentUserId == null">0 AS favorited</if>
         FROM idle_item i
-        LEFT JOIN sys_user u ON i.user_id = u.id
-        LEFT JOIN item_category c ON i.category_id = c.id
+        INNER JOIN sys_user u ON i.user_id = u.id
+        INNER JOIN item_category c ON i.category_id = c.id
         WHERE i.id = #{id}
     </select>
 
-    <select id="selectPage" resultMap="BaseResultMap">
-        SELECT i.*, u.username, c.category_name
+    <!-- 分页 + 搜索/筛选 -->
+    <select id="selectPage" resultMap="VOResultMap">
+        SELECT i.*, u.username, u.avatar AS user_avatar, u.student_no, u.department,
+               c.category_name,
+               <choose>
+                   <when test="currentUserId != null">
+                       (SELECT COUNT(1) FROM favorite f WHERE f.item_id = i.id AND f.user_id = #{currentUserId}) AS favorited
+                   </when>
+                   <otherwise>0 AS favorited</otherwise>
+               </choose>
         FROM idle_item i
-        LEFT JOIN sys_user u ON i.user_id = u.id
-        LEFT JOIN item_category c ON i.category_id = c.id
-        WHERE i.status = 1
+        INNER JOIN sys_user u ON i.user_id = u.id
+        INNER JOIN item_category c ON i.category_id = c.id
+        WHERE i.status = 1 AND i.audit_status = 1
         <if test="categoryId != null">
             AND i.category_id = #{categoryId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (i.item_name LIKE CONCAT('%', #{keyword}, '%')
+                 OR i.item_desc LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="itemCondition != null and itemCondition != ''">
+            AND i.item_condition = #{itemCondition}
+        </if>
+        <if test="campus != null and campus != ''">
+            AND i.campus = #{campus}
         </if>
         ORDER BY i.create_time DESC
         LIMIT #{offset}, #{pageSize}
@@ -44,31 +106,64 @@
     <select id="selectCount" resultType="int">
         SELECT COUNT(*)
         FROM idle_item
-        WHERE status = 1
+        WHERE status = 1 AND audit_status = 1
         <if test="categoryId != null">
             AND category_id = #{categoryId}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (item_name LIKE CONCAT('%', #{keyword}, '%')
+                 OR item_desc LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="itemCondition != null and itemCondition != ''">
+            AND item_condition = #{itemCondition}
+        </if>
+        <if test="campus != null and campus != ''">
+            AND campus = #{campus}
         </if>
     </select>
 
     <update id="updateStatus">
-        UPDATE idle_item SET status = #{status} WHERE id = #{id}
+        UPDATE idle_item SET status = #{status}, update_time = NOW() WHERE id = #{id}
     </update>
 
-    <select id="selectByUserId" resultMap="BaseResultMap">
-        SELECT i.*, u.username, c.category_name
+    <update id="incrementViewCount">
+        UPDATE idle_item SET view_count = view_count + 1 WHERE id = #{id}
+    </update>
+
+    <select id="selectByUserId" resultMap="VOResultMap">
+        SELECT i.*, u.username, u.avatar AS user_avatar, u.student_no, u.department,
+               c.category_name, 0 AS favorited
         FROM idle_item i
-        LEFT JOIN sys_user u ON i.user_id = u.id
-        LEFT JOIN item_category c ON i.category_id = c.id
+        INNER JOIN sys_user u ON i.user_id = u.id
+        INNER JOIN item_category c ON i.category_id = c.id
         WHERE i.user_id = #{userId}
         ORDER BY i.create_time DESC
     </select>
 
-    <select id="selectAll" resultMap="BaseResultMap">
-        SELECT i.*, u.username, c.category_name
+    <select id="selectAll" resultMap="VOResultMap">
+        SELECT i.*, u.username, u.avatar AS user_avatar, u.student_no, u.department,
+               c.category_name, 0 AS favorited
         FROM idle_item i
-        LEFT JOIN sys_user u ON i.user_id = u.id
-        LEFT JOIN item_category c ON i.category_id = c.id
+        INNER JOIN sys_user u ON i.user_id = u.id
+        INNER JOIN item_category c ON i.category_id = c.id
         ORDER BY i.create_time DESC
+    </select>
+
+    <select id="countByStatus" resultType="int">
+        SELECT COUNT(*) FROM idle_item WHERE status = #{status}
+    </select>
+
+    <select id="countByAuditStatus" resultType="int">
+        SELECT COUNT(*) FROM idle_item WHERE audit_status = #{auditStatus}
+    </select>
+
+    <update id="updateAuditStatus">
+        UPDATE idle_item SET audit_status = #{auditStatus}, audit_remark = #{auditRemark}, update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="countAll" resultType="int">
+        SELECT COUNT(*) FROM idle_item
     </select>
 
     <delete id="deleteById">

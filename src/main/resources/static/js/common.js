@@ -53,7 +53,7 @@ function request(url, options = {}) {
 
     const token = getToken();
     if (token) {
-        headers['token'] = token;
+        headers['Authorization'] = 'Bearer ' + token;
     }
 
     const fullUrl = url.startsWith('http') ? url : API_BASE + url;
@@ -64,14 +64,18 @@ function request(url, options = {}) {
     })
     .then(response => {
         if (response.status === 401) {
-            // token失效
             showToast('登录已过期，请重新登录', 'error');
             localStorage.removeItem('token');
             localStorage.removeItem('userInfo');
+            // 管理员页面跳管理员登录页，普通用户跳用户登录页
+            const isAdminPage = window.location.pathname.includes('admin');
             setTimeout(() => {
-                window.location.href = 'login.html';
+                window.location.href = isAdminPage ? 'admin-login.html' : 'login.html';
             }, 1500);
             return Promise.reject('未授权');
+        }
+        if (response.status === 403) {
+            return response.json();
         }
         return response.json();
     })
@@ -96,7 +100,7 @@ function request(url, options = {}) {
  */
 function httpGet(url, params = {}) {
     const query = Object.keys(params)
-        .filter(k => params[k] !== undefined && params[k] !== null)
+        .filter(k => params[k] !== undefined && params[k] !== null && params[k] !== '')
         .map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`)
         .join('&');
     const fullUrl = query ? `${url}?${query}` : url;
@@ -124,10 +128,59 @@ function httpPut(url, body = {}) {
 }
 
 /**
+ * DELETE 请求
+ */
+function httpDelete(url) {
+    return request(url, { method: 'DELETE' });
+}
+
+/**
+ * 文件上传请求（不设置 Content-Type，让浏览器自动设置 multipart boundary）
+ * @param {string} url 上传接口地址
+ * @param {File} file 文件对象
+ * @param {string} fieldName 表单字段名，默认 file
+ */
+function uploadFile(url, file, fieldName = 'file') {
+    const formData = new FormData();
+    formData.append(fieldName, file);
+
+    const headers = {};
+    const token = getToken();
+    if (token) {
+        headers['Authorization'] = 'Bearer ' + token;
+    }
+    // 注意：不要设置 Content-Type，浏览器会自动添加 multipart/form-data; boundary=...
+
+    return fetch(url, {
+        method: 'POST',
+        headers: headers,
+        body: formData
+    })
+    .then(response => {
+        if (response.status === 401) {
+            showToast('登录已过期，请重新登录', 'error');
+            localStorage.removeItem('token');
+            localStorage.removeItem('userInfo');
+            const isAdminPage = window.location.pathname.includes('admin');
+            setTimeout(() => { window.location.href = isAdminPage ? 'admin-login.html' : 'login.html'; }, 1500);
+            return Promise.reject('未授权');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.code === 200) {
+            return data;
+        } else {
+            showToast(data.msg || '上传失败', 'error');
+            return Promise.reject(data);
+        }
+    });
+}
+
+/**
  * 显示 Toast 提示
  */
 function showToast(msg, type = 'info') {
-    // 移除已有 toast
     document.querySelectorAll('.toast').forEach(t => t.remove());
 
     const toast = document.createElement('div');
@@ -159,12 +212,13 @@ function formatDate(dateStr) {
  */
 const STATUS_MAP = {
     0: '待处理',
-    1: '同意',
-    2: '拒绝',
+    1: '已同意',
+    2: '已拒绝',
+    3: '已完成'
 };
 
 const ITEM_STATUS_MAP = {
     1: '上架中',
     2: '已交换完成',
-    3: '已下架',
+    3: '已下架'
 };

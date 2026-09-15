@@ -1,6 +1,7 @@
 package com.barter.mapper;
 
 import com.barter.entity.ExchangeApply;
+import com.barter.vo.ExchangeApplyVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -14,26 +15,23 @@ public interface ExchangeApplyMapper {
 
     int insert(ExchangeApply apply);
 
-    /**
-     * 查询我发起的全部申请
-     */
-    List<ExchangeApply> selectMyApply(@Param("applyUserId") Long applyUserId);
+    /** 我发起的申请（含物品和发布者信息） */
+    List<ExchangeApplyVO> selectMyApply(@Param("applyUserId") Long applyUserId);
 
-    /**
-     * 查询我收到的申请（发布者视角）
-     */
-    List<ExchangeApply> selectReceivedApply(@Param("userId") Long userId);
+    /** 我收到的申请（含申请人和物品信息） */
+    List<ExchangeApplyVO> selectReceivedApply(@Param("ownerUserId") Long ownerUserId);
 
-    /**
-     * 处理申请
-     */
     int updateStatus(@Param("id") Long id, @Param("applyStatus") Integer applyStatus);
 
-    /**
-     * 根据ID查询
-     */
+    /** 基础查询 */
     ExchangeApply selectById(Long id);
 
-    /** 管理员：查询全部申请 */
-    List<ExchangeApply> selectAll();
+    /** 详情（含关联信息） */
+    ExchangeApplyVO selectVOById(Long id);
+
+    /** 管理后台：全部申请 */
+    List<ExchangeApplyVO> selectAll();
+
+    /** 统计申请总数 */
+    int countAll();
 }

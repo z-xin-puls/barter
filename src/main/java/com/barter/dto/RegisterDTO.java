@@ -11,4 +11,8 @@ public class RegisterDTO {
     private String password;
     private String realName;
     private String phone;
+    /** 学号 */
+    private String studentNo;
+    /** 院系 */
+    private String department;
 }

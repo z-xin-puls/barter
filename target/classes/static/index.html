@@ -8,7 +8,7 @@
 </head>
 <body>
 
-<div id="app">
+<div id="app" v-cloak>
     <!-- 导航栏 -->
     <div class="navbar">
         <div class="logo">🎒 校园闲置物品交换平台</div>
@@ -22,24 +22,46 @@
     </div>
 
     <div class="container">
-        <!-- 筛选栏 -->
-        <div class="filter-bar">
-            <span style="color:#666; font-weight:500;">分类筛选：</span>
+        <!-- 搜索筛选栏 -->
+        <div class="filter-bar" style="flex-wrap:wrap;gap:10px;">
+            <input v-model="keyword" @keyup.enter="loadItems(1)" placeholder="🔍 搜索物品名称/描述"
+                   style="padding:8px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;width:220px;">
             <select v-model="selectedCategory" @change="loadItems(1)">
                 <option :value="null">全部分类</option>
-                <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.categoryName }}</option>
+                <option v-for="c in categories" :key="c.id" :value="c.id">{{ c.icon }} {{ c.categoryName }}</option>
             </select>
+            <select v-model="selectedCondition" @change="loadItems(1)">
+                <option value="">全部成色</option>
+                <option value="全新">全新</option>
+                <option value="轻微使用">轻微使用</option>
+                <option value="明显使用">明显使用</option>
+            </select>
+            <input v-model="selectedCampus" @keyup.enter="loadItems(1)" placeholder="校区"
+                   style="padding:8px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;width:120px;">
+            <button class="btn btn-primary btn-sm" @click="loadItems(1)">搜索</button>
             <span style="color:#aaa; font-size:13px; margin-left:auto;">共 {{ total }} 件闲置物品</span>
         </div>
 
         <!-- 物品列表 -->
         <div class="items-grid">
-            <div v-for="item in items" :key="item.id" class="item-card" @click="showDetail(item)">
+            <div v-for="item in items" :key="item.id" class="item-card" @click="showDetail(item.id)">
+                <div v-if="item.images" style="margin-bottom:10px;">
+                    <img :src="getFirstImage(item.images)"
+                         style="width:100%;height:160px;object-fit:cover;border-radius:8px;"
+                         onerror="this.style.display='none'">
+                </div>
                 <h3>{{ item.itemName }}</h3>
-                <div class="tag">{{ item.categoryName }}</div>
+                <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+                    <span class="tag">{{ item.categoryName }}</span>
+                    <span class="tag" style="background:#28a745;" v-if="item.itemCondition">{{ item.itemCondition }}</span>
+                </div>
                 <div class="desc">{{ item.itemDesc || '暂无描述' }}</div>
-                <div style="color:#ffc107; font-size:13px; margin-bottom:8px;">
-                    💱 希望交换：{{ item.hopeExchange || '未填写' }}
+                <div style="color:#ffc107; font-size:13px; margin-bottom:6px;">
+                    💱 {{ item.hopeExchange || '未填写希望交换物' }}
+                </div>
+                <div style="color:#888;font-size:12px;margin-bottom:8px;">
+                    <span v-if="item.campus">📍 {{ item.campus }}</span>
+                    <span style="margin-left:10px;">👁 {{ item.viewCount || 0 }}</span>
                 </div>
                 <div class="meta">
                     <span>👤 {{ item.username }}</span>
@@ -49,9 +71,9 @@
         </div>
 
         <!-- 空状态 -->
-        <div v-if="items.length === 0" class="empty">
+        <div v-if="dataLoaded && items.length === 0" class="empty">
             <div class="empty-icon">📦</div>
-            <div>暂无闲置物品，快去发布第一件吧~</div>
+            <div>没有找到相关闲置物品，换个关键词试试吧~</div>
         </div>
 
         <!-- 分页 -->
@@ -64,16 +86,35 @@
 
     <!-- 物品详情弹窗 -->
     <div v-if="detailItem" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:150;display:flex;align-items:center;justify-content:center;" @click.self="detailItem = null">
-        <div class="card" style="max-width:500px;width:90%;">
-            <h2 style="margin-bottom:16px;">{{ detailItem.itemName }}</h2>
-            <div class="tag" style="margin-bottom:12px;">{{ detailItem.categoryName }}</div>
+        <div class="card" style="max-width:520px;width:90%;max-height:90vh;overflow-y:auto;">
+            <div v-if="detailItem.images" style="margin-bottom:14px;">
+                <img v-for="(img,idx) in getAllImages(detailItem.images)" :key="idx" :src="img"
+                     style="width:100%;max-height:250px;object-fit:cover;border-radius:8px;margin-bottom:8px;"
+                     onerror="this.style.display='none'">
+            </div>
+            <h2 style="margin-bottom:12px;">{{ detailItem.itemName }}</h2>
+            <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+                <span class="tag">{{ detailItem.categoryName }}</span>
+                <span class="tag" style="background:#28a745;" v-if="detailItem.itemCondition">成色：{{ detailItem.itemCondition }}</span>
+            </div>
             <p style="margin-bottom:10px;color:#666;">📝 {{ detailItem.itemDesc || '暂无描述' }}</p>
             <p style="margin-bottom:10px;color:#ffc107;">💱 希望交换：{{ detailItem.hopeExchange || '未填写' }}</p>
-            <p style="margin-bottom:10px;color:#888;font-size:13px;">👤 发布者：{{ detailItem.username }}</p>
-            <p style="margin-bottom:20px;color:#aaa;font-size:13px;">🕐 发布时间：{{ formatDate(detailItem.createTime) }}</p>
-            <div style="display:flex;gap:10px;">
-                <button class="btn btn-primary" v-if="user" @click="applyExchange(detailItem)">✨ 发起交换申请</button>
-                <button class="btn btn-primary" v-else @click="toLogin">请先登录</button>
+            <p style="margin-bottom:6px;color:#888;font-size:13px;" v-if="detailItem.campus">📍 交易地点：{{ detailItem.campus }}</p>
+            <p style="margin-bottom:6px;color:#888;font-size:13px;">👁 浏览量：{{ detailItem.viewCount || 0 }}</p>
+            <p style="margin-bottom:6px;color:#888;font-size:13px;">
+                👤 发布者：{{ detailItem.username }}
+                <span v-if="detailItem.studentNo">（学号：{{ detailItem.studentNo }}）</span>
+                <span v-if="detailItem.department"> {{ detailItem.department }}</span>
+            </p>
+            <p style="margin-bottom:20px;color:#aaa;font-size:13px;">🕐 {{ formatDate(detailItem.createTime) }}</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button class="btn btn-primary" v-if="user && detailItem.userId !== user.userId" @click="applyExchange(detailItem)">✨ 发起交换</button>
+                <button class="btn btn-primary" v-if="!user" @click="toLogin">请先登录</button>
+                <button class="btn" :style="{background: detailItem.favorited ? '#ffc107' : '#f0f0f0', color: detailItem.favorited ? '#fff' : '#666'}"
+                        v-if="user && detailItem.userId !== user.userId" @click="toggleFavorite(detailItem)">
+                    {{ detailItem.favorited ? '★ 已收藏' : '☆ 收藏' }}
+                </button>
+                <button class="btn btn-secondary" v-if="user && detailItem.userId !== user.userId" @click="reportItem(detailItem)">举报</button>
                 <button class="btn btn-secondary" @click="detailItem = null">关闭</button>
             </div>
         </div>
@@ -102,7 +143,7 @@
     </div>
 </div>
 
-<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script src="js/vue.global.js"></script>
 <script src="js/common.js"></script>
 <script>
     const { createApp, ref, computed, onMounted, nextTick } = Vue;
@@ -112,13 +153,16 @@
             const user = ref(getUserInfo());
             const categories = ref([]);
             const selectedCategory = ref(null);
+            const selectedCondition = ref('');
+            const selectedCampus = ref('');
+            const keyword = ref('');
             const items = ref([]);
             const total = ref(0);
             const pageNum = ref(1);
             const pageSize = ref(10);
             const detailItem = ref(null);
+            const dataLoaded = ref(false);
 
-            // AI 相关
             const openAI = ref(false);
             const aiInput = ref('');
             const aiLoading = ref(false);
@@ -126,6 +170,15 @@
             const aiMessagesRef = ref(null);
 
             const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)));
+
+            const getFirstImage = (images) => {
+                if (!images) return '';
+                try { const arr = JSON.parse(images); return arr[0] || ''; } catch(e) { return images.split(',')[0] || ''; }
+            };
+            const getAllImages = (images) => {
+                if (!images) return [];
+                try { return JSON.parse(images); } catch(e) { return images.split(',').filter(s=>s); }
+            };
 
             const loadCategories = async () => {
                 try {
@@ -136,19 +189,56 @@
 
             const loadItems = async (page = 1) => {
                 pageNum.value = page;
+                dataLoaded.value = false;
                 try {
                     const res = await httpGet('/api/item/page', {
                         pageNum: page,
                         pageSize: pageSize.value,
-                        categoryId: selectedCategory.value
+                        categoryId: selectedCategory.value,
+                        keyword: keyword.value,
+                        itemCondition: selectedCondition.value,
+                        campus: selectedCampus.value
                     });
                     items.value = res.data.records;
                     total.value = res.data.total;
+                } catch (e) {
+                } finally {
+                    dataLoaded.value = true;
+                }
+            };
+
+            const showDetail = async (id) => {
+                try {
+                    const res = await httpGet('/api/item/detail/' + id);
+                    detailItem.value = res.data;
                 } catch (e) {}
             };
 
-            const showDetail = (item) => {
-                detailItem.value = item;
+            const toggleFavorite = async (item) => {
+                if (!requireLogin()) return;
+                try {
+                    if (item.favorited) {
+                        await httpDelete('/api/favorite/remove/' + item.id);
+                        item.favorited = false;
+                        showToast('已取消收藏', 'info');
+                    } else {
+                        await httpPost('/api/favorite/add/' + item.id);
+                        item.favorited = true;
+                        showToast('收藏成功', 'success');
+                    }
+                } catch (e) {}
+            };
+
+            const reportItem = (item) => {
+                if (!requireLogin()) return;
+                const reason = prompt('请选择举报原因（如：虚假信息/违禁物品/欺诈行为）：');
+                if (!reason || reason === null) return;
+                const description = prompt('请补充详细描述（选填）：') || '';
+                httpPost('/api/report/add', {
+                    targetType: 'item', targetId: item.id, reason: reason, description: description
+                }).then(() => {
+                    showToast('举报已提交，我们会尽快处理', 'success');
+                }).catch(() => {});
             };
 
             const applyExchange = async (item) => {
@@ -162,9 +252,7 @@
                 } catch (e) {}
             };
 
-            const toLogin = () => {
-                window.location.href = 'login.html';
-            };
+            const toLogin = () => { window.location.href = 'login.html'; };
 
             const sendAI = async () => {
                 if (!aiInput.value.trim()) return;
@@ -174,7 +262,6 @@
                 aiLoading.value = true;
                 await nextTick();
                 scrollAIBottom();
-
                 try {
                     const res = await httpPost('/api/ai/chat', { content: text });
                     aiMessages.value.push({ role: 'ai', content: res.data });
@@ -188,9 +275,7 @@
             };
 
             const scrollAIBottom = () => {
-                if (aiMessagesRef.value) {
-                    aiMessagesRef.value.scrollTop = aiMessagesRef.value.scrollHeight;
-                }
+                if (aiMessagesRef.value) aiMessagesRef.value.scrollTop = aiMessagesRef.value.scrollHeight;
             };
 
             onMounted(() => {
@@ -199,11 +284,12 @@
             });
 
             return {
-                user, categories, selectedCategory, items, total, pageNum, pageSize, totalPages, detailItem,
+                user, categories, selectedCategory, selectedCondition, selectedCampus, keyword,
+                items, total, pageNum, pageSize, totalPages, detailItem, dataLoaded,
                 openAI, aiInput, aiLoading, aiMessages, aiMessagesRef,
-                logout,
-                loadItems, showDetail, applyExchange, toLogin, sendAI,
-                formatDate
+                getFirstImage, getAllImages,
+                logout, loadItems, showDetail, toggleFavorite, reportItem,
+                applyExchange, toLogin, sendAI, formatDate
             };
         }
     }).mount('#app');
